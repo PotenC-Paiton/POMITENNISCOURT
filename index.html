@@ -88,26 +88,37 @@
     <!-- DASHBOARD -->
     <section data-page-view="home">
       <h2 class="greet" id="greet"></h2>
-      <div class="stats">
-        <div class="stat"><span class="stat-n" id="st-today">0</span><span class="stat-l">Slot terisi hari ini</span></div>
-        <div class="stat"><span class="stat-n" id="st-free">0</span><span class="stat-l">Slot tersedia hari ini</span></div>
-        <div class="stat"><span class="stat-n" id="st-week">0</span><span class="stat-l">Jam terpakai 7 hari ke depan</span></div>
-        <div class="stat"><span class="stat-n" id="st-mine">0</span><span class="stat-l">Booking saya ke depan</span></div>
-        <div class="stat only-pengurus"><span class="stat-n" id="st-members">0</span><span class="stat-l">Anggota aktif</span></div>
-        <div class="stat only-pengurus"><span class="stat-n warn" id="st-pending">0</span><span class="stat-l">Menunggu verifikasi</span></div>
-      </div>
+
+      <!-- pengurus: antrean verifikasi -->
+      <button type="button" class="alert-card only-pengurus" id="pending-card" hidden>
+        <span class="alert-n" id="st-pending">0</span>
+        <span><b>pendaftar menunggu verifikasi</b><br><span class="muted small">Klik untuk meninjau</span></span>
+        <span class="alert-go">›</span>
+      </button>
+
+      <!-- status lapangan sekarang -->
+      <div class="now-grid" id="now-grid"></div>
+
       <div class="grid2">
         <div class="card">
           <h3>Booking saya</h3>
+          <div id="next-booking"></div>
           <ul class="list" id="my-bookings"></ul>
         </div>
         <div class="card">
-          <h3>Jadwal hari ini</h3>
-          <ul class="list" id="today-list"></ul>
+          <h3>Slot kosong hari ini</h3>
+          <div id="free-today"></div>
+          <p class="muted small" style="margin:10px 0 0">Klik jam untuk langsung booking.</p>
         </div>
       </div>
+
       <div class="card">
-        <h3>Pemakaian 7 hari ke depan</h3>
+        <h3>Jadwal hari ini</h3>
+        <ul class="list" id="today-list"></ul>
+      </div>
+
+      <div class="card only-pengurus">
+        <div class="card-head"><h3>Pemakaian 7 hari ke depan</h3><span class="muted small"><b id="st-week">0</b> jam terpakai · <b id="st-members">0</b> anggota aktif</span></div>
         <div class="bars" id="week-bars"></div>
       </div>
       <div class="card">

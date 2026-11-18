@@ -219,54 +219,91 @@ function renderAll() { if (!me || me.status !== 'approved') return; renderHome()
 
 function renderHome() {
   if (!me) return;
-  const today = isoDate(dayDate(0)), starts = slotStarts();
-  let taken = 0, free = 0;
-  const todayItems = [];
-  COURTS.forEach((c, ci) => starts.forEach(s => {
-    const o = occupant(today, ci, s);
-    if (closedReason(today)) return;
-    if (o) { taken++; todayItems.push({ s, c, o }); } else if (!isPastSlot(today, s)) free++;
-  }));
-  $('st-today').textContent = taken;
-  $('st-free').textContent = free;
+  const today = isoDate(dayDate(0)), starts = slotStarts(), cl = closedReason(today);
+  const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+  const label = o => o.kind === 'booking' ? o.b.name : (o.r.label || 'Jadwal rutin');
 
-  // 7 hari ke depan
-  const bars = [];
-  let weekMin = 0;
-  for (let i = 0; i < 7; i++) {
-    const iso = isoDate(dayDate(i)); let m = 0;
-    if (!closedReason(iso)) COURTS.forEach((c, ci) => starts.forEach(s => { if (occupant(iso, ci, s)) m += STEP; }));
-    weekMin += m; bars.push({ d: dayDate(i), h: m / 60, closed: !!closedReason(iso) });
-  }
-  $('st-week').textContent = Math.round(weekMin / 60 * 10) / 10;
-  const maxH = Math.max(1, ...bars.map(b => b.h));
-  $('week-bars').innerHTML = bars.map(b => `<div class="bar" title="${esc(longDate(b.d))}"><b>${b.closed ? 'tutup' : b.h}</b><i style="height:${Math.round(b.h / maxH * 100)}%"></i><span>${DAYS[b.d.getDay()].slice(0, 3)}</span></div>`).join('');
+  // ── status tiap lapangan sekarang ──
+  $('now-grid').innerHTML = COURTS.map((c, ci) => {
+    let cls = 'free', state = 'Kosong', sub = '';
+    if (cl) { cls = 'off'; state = 'Tutup'; sub = cl; }
+    else if (nowMin < OPEN || nowMin >= CLOSE) {
+      cls = 'off'; state = 'Di luar jam buka';
+      sub = 'Buka ' + fmtMin(OPEN) + ' – ' + fmtMin(CLOSE);
+    } else {
+      const cur = starts.find(s => s <= nowMin && nowMin < s + STEP);
+      const o = occupant(today, ci, cur);
+      if (o) {
+        let end = cur + STEP;   // perpanjang selama slot berikutnya dipakai orang/jadwal yang sama
+        while (end < CLOSE) { const n = occupant(today, ci, end); if (!n || label(n) !== label(o)) break; end += STEP; }
+        const mine = o.kind === 'booking' && o.b.uid === me.uid;
+        cls = mine ? 'mine' : 'busy'; state = mine ? 'Dipakai Anda' : 'Dipakai';
+        sub = (mine ? '' : label(o) + ' · ') + 's/d ' + fmtMin(end);
+      } else {
+        let end = cur + STEP;
+        while (end < CLOSE && !occupant(today, ci, end)) end += STEP;
+        sub = end >= CLOSE ? 'Kosong sampai tutup (' + fmtMin(CLOSE) + ')' : 'Kosong sampai ' + fmtMin(end);
+      }
+    }
+    return `<div class="now ${cls}"><span class="court">${esc(c)} · sekarang</span><span class="state">${esc(state)}</span><span class="sub">${esc(sub)}</span></div>`;
+  }).join('');
 
-  // booking saya (dikelompokkan per grup)
+  // ── booking saya (dikelompokkan per grup) ──
   const groups = new Map();
   S.bookings.forEach(b => {
     if (b.uid !== me.uid || isPastSlot(b.date, b.start)) return;
-    const g = groups.get(b.group || b.id) || { date: b.date, court: b.court, start: b.start, end: b.end, ids: [] };
+    const k = b.group || b.id;
+    const g = groups.get(k) || { date: b.date, court: b.court, start: b.start, end: b.end, ids: [] };
     g.start = Math.min(g.start, b.start); g.end = Math.max(g.end, b.end); g.ids.push(b.id);
-    groups.set(b.group || b.id, g);
+    groups.set(k, g);
   });
   const mine = [...groups.values()].sort((a, b) => (a.date + pad(a.start)).localeCompare(b.date + pad(b.start)));
-  $('st-mine').textContent = mine.length;
-  $('my-bookings').innerHTML = mine.length ? mine.map(g =>
-    `<li><span><b>${esc(shortDate(fromIso(g.date)))}</b> · ${fmtMin(g.start)}–${fmtMin(g.end)}${COURTS.length > 1 ? ' · ' + esc(g.court) : ''}</span>
-     <button class="btn ghost mini" type="button" data-cancel-group="${esc(g.ids.join(','))}">Batal</button></li>`).join('')
-    : '<li class="empty">Belum ada booking. Buka menu Booking untuk memesan lapangan.</li>';
+  const when = g => (g.date === today ? 'Hari ini' : shortDate(fromIso(g.date))) + ' · ' + fmtMin(g.start) + '–' + fmtMin(g.end);
+  const row = g => `<li><span><b>${esc(when(g))}</b> · ${esc(g.court)}</span><button class="btn ghost mini" type="button" data-cancel-group="${esc(g.ids.join(','))}">Batal</button></li>`;
+  if (mine.length) {
+    const n = mine[0];
+    $('next-booking').innerHTML = `<div class="next-box"><span class="small">Booking berikutnya</span><b>${esc(when(n))}</b><span>${esc(n.court)}</span></div>`;
+    $('my-bookings').innerHTML = mine.map(row).join('');
+  } else {
+    $('next-booking').innerHTML = '';
+    $('my-bookings').innerHTML = '<li class="empty">Belum ada booking. Pilih slot kosong di samping atau buka menu Booking.</li>';
+  }
 
-  todayItems.sort((a, b) => a.s - b.s);
-  $('today-list').innerHTML = closedReason(today) ? `<li class="empty">Lapangan tutup hari ini: ${esc(closedReason(today))}</li>`
-    : todayItems.length ? todayItems.map(x => `<li><span><b>${fmtMin(x.s)}–${fmtMin(x.s + STEP)}</b>${COURTS.length > 1 ? ' · ' + esc(x.c) : ''}</span><span class="muted">${esc(x.o.kind === 'booking' ? x.o.b.name : x.o.r.label)}</span></li>`).join('')
+  // ── slot kosong hari ini (klik = booking) ──
+  if (cl) $('free-today').innerHTML = `<p class="muted">Lapangan tutup hari ini: ${esc(cl)}</p>`;
+  else {
+    $('free-today').innerHTML = COURTS.map((c, ci) => {
+      const free = starts.filter(s => !isPastSlot(today, s) && !occupant(today, ci, s));
+      return `<div class="free-court"><div class="lbl">${esc(c)}</div>${free.length
+        ? `<div class="chips">${free.map(s => `<button type="button" class="chip" data-quick="${ci}:${s}">${fmtMin(s)}</button>`).join('')}</div>`
+        : '<span class="muted small">Penuh / sudah lewat</span>'}</div>`;
+    }).join('');
+  }
+
+  // ── jadwal hari ini ──
+  const items = [];
+  if (!cl) COURTS.forEach((c, ci) => starts.forEach(s => { const o = occupant(today, ci, s); if (o) items.push({ s, c, who: label(o) }); }));
+  items.sort((a, b) => a.s - b.s || a.c.localeCompare(b.c));
+  $('today-list').innerHTML = cl ? `<li class="empty">Lapangan tutup hari ini: ${esc(cl)}</li>`
+    : items.length ? items.map(x => `<li><span><b>${fmtMin(x.s)}–${fmtMin(x.s + STEP)}</b> · ${esc(x.c)}</span><span class="muted">${esc(x.who)}</span></li>`).join('')
     : '<li class="empty">Belum ada yang memakai lapangan hari ini.</li>';
 
+  // ── khusus pengurus ──
   if (isPengurus()) {
     const pend = S.users.filter(u => u.status === 'pending').length;
-    $('st-members').textContent = S.users.filter(u => u.status === 'approved').length;
     $('st-pending').textContent = pend;
+    $('pending-card').hidden = !pend;
     $('pending-badge').textContent = pend; $('pending-badge').hidden = !pend;
+    $('st-members').textContent = S.users.filter(u => u.status === 'approved').length;
+    const bars = []; let weekMin = 0;
+    for (let i = 0; i < 7; i++) {
+      const iso = isoDate(dayDate(i)); let m = 0;
+      if (!closedReason(iso)) COURTS.forEach((c, ci) => starts.forEach(s => { if (occupant(iso, ci, s)) m += STEP; }));
+      weekMin += m; bars.push({ d: dayDate(i), h: m / 60, closed: !!closedReason(iso) });
+    }
+    $('st-week').textContent = Math.round(weekMin / 60 * 10) / 10;
+    const maxH = Math.max(1, ...bars.map(b => b.h));
+    $('week-bars').innerHTML = bars.map(b => `<div class="bar" title="${esc(longDate(b.d))}"><b>${b.closed ? 'tutup' : b.h}</b><i style="height:${Math.round(b.h / maxH * 100)}%"></i><span>${DAYS[b.d.getDay()].slice(0, 3)}</span></div>`).join('');
   }
 }
 
@@ -491,6 +528,14 @@ function wireStatic() {
   $('form-detail').addEventListener('submit', doCancelDetail);
   $$('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 
+  $('free-today').addEventListener('click', e => {
+    const b = e.target.closest('[data-quick]'); if (!b) return;
+    const [ci, st] = b.dataset.quick.split(':').map(Number);
+    dayIdx = 0; courtIdx = ci; $('court-select').value = String(ci); renderBooking(); openBook(st);
+  });
+  $('pending-card').addEventListener('click', () => {
+    memberFilter = 'pending'; $$('#member-tabs .tab').forEach(x => x.classList.toggle('active', x.dataset.mf === 'pending')); goPage('members');
+  });
   $('my-bookings').addEventListener('click', async e => {
     const b = e.target.closest('[data-cancel-group]'); if (!b) return;
     if (!confirm('Batalkan booking ini?')) return;
