@@ -5,8 +5,8 @@ rules_version = '2';
 // Prinsip:
 //  - Akun baru selalu dibuat dengan status 'pending' dan role 'member'.
 //  - Hanya akun 'approved' yang bisa membaca jadwal / booking.
-//  - Hanya 'pengurus' yang bisa memverifikasi anggota, menutup lapangan, dan
-//    mengatur jadwal rutin.
+//  - Booking oleh member wajib berstatus 'pending' sampai disetujui pengurus;
+//    hanya pengurus yang bisa mengubah status booking.
 //  - Satu slot = satu dokumen (id unik), jadi dua orang tidak bisa membooking
 //    slot yang sama: dokumen yang sudah ada tidak bisa ditimpa anggota biasa.
 service cloud.firestore {
@@ -19,14 +19,11 @@ service cloud.firestore {
     function pengurus() { return approved() && me().role == 'pengurus'; }
 
     match /users/{uid} {
-      // Anggota membaca datanya sendiri; pengurus membaca semua.
       allow read: if signedIn() && (request.auth.uid == uid || pengurus());
-      // Pendaftaran: hanya untuk diri sendiri, wajib pending + member.
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.status == 'pending'
         && request.resource.data.role == 'member'
         && request.resource.data.username is string;
-      // Anggota hanya boleh mengubah nama, unit, dan nomor HP miliknya.
       allow update: if pengurus()
         || (request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'unit', 'phone']));
@@ -38,9 +35,17 @@ service cloud.firestore {
       allow create: if approved()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.date is string
-        && request.resource.data.start is int;
+        && request.resource.data.start is int
+        && (pengurus() || request.resource.data.status == 'pending');
       allow update: if pengurus();
       allow delete: if pengurus() || (approved() && resource.data.uid == request.auth.uid);
+    }
+
+    // Notifikasi untuk anggota (booking disetujui / ditolak / dibatalkan admin)
+    match /notices/{id} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || pengurus());
+      allow create: if pengurus();
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || pengurus());
     }
 
     match /closed/{date} {

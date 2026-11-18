@@ -6,7 +6,7 @@ Dashboard anggota dan booking lapangan tenis. Tampilan di-host di **GitHub Pages
 
 - **Daftar & login pakai username** (tanpa email). Akun baru berstatus *Menunggu verifikasi* sampai disetujui pengurus.
 - **Dashboard**: slot terisi/tersedia hari ini, jam terpakai 7 hari ke depan, booking saya, jadwal hari ini, grafik pemakaian.
-- **Booking langsung**: slot terkunci begitu dibooking (tidak bisa bentrok); anggota maksimal 2x reservasi per minggu, maks 2 jam per reservasi (bisa diatur); batal sendiri.
+- **Booking dengan persetujuan**: booking member berstatus *Awaiting approval* (slot ditahan) sampai disetujui admin di menu **Approvals**; ditolak = slot kosong lagi; member menerima notifikasi. Booking admin langsung disetujui. slot terkunci begitu dibooking (tidak bisa bentrok); anggota maksimal 2x reservasi per minggu, maks 2 jam per reservasi (bisa diatur); batal sendiri.
 - **Pengurus**: verifikasi / tolak / nonaktifkan anggota, angkat pengurus lain, batalkan booking siapa pun, atur tanggal tutup dan jadwal rutin mingguan.
 - **Profil**: ubah nama, unit, nomor HP, dan ganti password.
 

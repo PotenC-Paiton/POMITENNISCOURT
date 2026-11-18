@@ -1,5 +1,5 @@
 // POTENC Tennis — dashboard anggota & booking lapangan (Firebase Auth + Firestore)
-import { firebaseConfig } from './firebase-config.js?v=20261118f';
+import { firebaseConfig } from './firebase-config.js?v=20261118g';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const C = window.COURT_CONFIG || {};
@@ -55,7 +55,7 @@ let auth, db;
 let me = null;          // {uid, ...data user}
 let unsubs = [];        // listener data
 let unsubMe = null;
-const S = { bookings: new Map(), closed: new Map(), recurring: [], users: [] };
+const S = { bookings: new Map(), closed: new Map(), recurring: [], users: [], notices: [] };
 let dayIdx = 0, courtIdx = 0, memberFilter = 'pending', page = 'home';
 let started = false;
 
@@ -177,7 +177,7 @@ function enterApp() {
   document.body.classList.toggle('is-pengurus', isPengurus());
   $('greet').textContent = 'Hi, ' + (me.name || me.username) + (isPengurus() ? ' (Admin)' : '');
   fillProfile();
-  if (!isPengurus() && (page === 'members' || page === 'court')) goPage('home');
+  if (!isPengurus() && (page === 'members' || page === 'court' || page === 'approvals')) goPage('home');
   if (started && started === me.role) { renderAll(); return; }
   if (started) stopData();          // peran berubah (mis. diangkat jadi pengurus) → pasang ulang listener
   started = me.role;
@@ -193,13 +193,53 @@ function enterApp() {
   unsubs.push(F.onSnapshot(F.collection(db, 'recurring'), snap => {
     S.recurring = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAll();
   }, onErr));
+  // notifikasi milik saya (booking disetujui / ditolak / dibatalkan admin)
+  unsubs.push(F.onSnapshot(F.query(F.collection(db, 'notices'), F.where('uid', '==', me.uid)), snap => {
+    S.notices = snap.docs.map(d => ({ id: d.id, ...d.data() })); safeRender('Notices', renderNotices);
+  }, e => console.warn('notices', e)));
   if (isPengurus()) {
     unsubs.push(F.onSnapshot(F.collection(db, 'users'), snap => {
-      S.users = snap.docs.map(d => ({ uid: d.id, ...d.data() })); renderMembers(); renderHome();
+      S.users = snap.docs.map(d => ({ uid: d.id, ...d.data() })); renderMembers(); safeRender('Dashboard', renderHome);
     }, onErr));
   }
   renderAll();
 }
+
+// ── status booking ─────────────────────────────────────
+// booking lama tanpa field status dianggap sudah disetujui
+const isPendingB = b => b && b.status === 'pending';
+// kelompokkan dokumen slot menjadi reservasi (satu grup = satu reservasi)
+function groupBookings(filter) {
+  const groups = new Map();
+  S.bookings.forEach(b => {
+    if (!filter(b)) return;
+    const k = b.group || b.id;
+    const g = groups.get(k) || { key: k, date: b.date, court: b.court, start: b.start, end: b.end, ids: [], uid: b.uid, name: b.name, username: b.username, note: b.note, pending: isPendingB(b), createdAt: b.createdAt };
+    g.start = Math.min(g.start, b.start); g.end = Math.max(g.end, b.end); g.ids.push(b.id);
+    groups.set(k, g);
+  });
+  return [...groups.values()].sort((a, b) => (a.date + pad(a.start)).localeCompare(b.date + pad(b.start)));
+}
+async function notify(uid, text, kind) {
+  try { await F.addDoc(F.collection(db, 'notices'), { uid, text, kind, by: me.username, createdAt: F.serverTimestamp() }); }
+  catch (e) { console.warn('notice not sent', e); }
+}
+async function approveGroup(g) {
+  const batch = F.writeBatch(db);
+  g.ids.forEach(id => batch.update(F.doc(db, 'bookings', id), { status: 'approved', approvedBy: me.username, approvedAt: F.serverTimestamp() }));
+  await batch.commit();
+  await notify(g.uid, `Your booking on ${shortDate(fromIso(g.date))}, ${fmtMin(g.start)}–${fmtMin(g.end)} (${g.court}) was approved.`, 'approved');
+  toast('Booking approved.');
+}
+async function rejectGroup(g, verb) {
+  const reason = prompt(`${verb === 'cancelled' ? 'Cancel' : 'Reject'} the booking of ${g.name}, ${shortDate(fromIso(g.date))} ${fmtMin(g.start)}–${fmtMin(g.end)}?\nReason (optional):`, '');
+  if (reason === null) return false;
+  await cancelIds(g.ids);
+  await notify(g.uid, `Your booking on ${shortDate(fromIso(g.date))}, ${fmtMin(g.start)}–${fmtMin(g.end)} (${g.court}) was ${verb} by an admin.${reason.trim() ? ' Reason: ' + reason.trim() : ''}`, verb);
+  toast(verb === 'cancelled' ? 'Booking cancelled.' : 'Booking rejected.');
+  return true;
+}
+function groupOf(id) { const b = S.bookings.get(id); return b ? groupBookings(x => (x.group || x.id) === (b.group || b.id))[0] : null; }
 
 // ── jadwal: siapa yang memakai slot ────────────────────
 function closedReason(iso) { const c = S.closed.get(iso); return c ? (c.reason || 'Closed') : null; }
@@ -239,13 +279,34 @@ function safeRender(name, fn) {
 function renderAll() {
   if (!me || me.status !== 'approved') return;
   safeRender('Dashboard', renderHome); safeRender('Booking', renderBooking); safeRender('Manage Courts', renderCourt);
+  safeRender('Approvals', renderApprovals);
+}
+
+function renderNotices() {
+  const list = [...(S.notices || [])].sort((a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0)).slice(0, 10);
+  $('notices').hidden = !list.length;
+  $('notices').innerHTML = list.map(n => `<div class="notice ${esc(n.kind || '')}"><span>${esc(n.text)}</span><button type="button" class="btn ghost mini" data-dismiss="${esc(n.id)}">Dismiss</button></div>`).join('');
+}
+
+function renderApprovals() {
+  if (!isPengurus()) return;
+  const pend = groupBookings(b => isPendingB(b) && !isPastSlot(b.date, b.start));
+  $('appr-n').textContent = pend.length; $('appr-card').hidden = !pend.length;
+  $('appr-badge').textContent = pend.length; $('appr-badge').hidden = !pend.length;
+  const when = t => t && t.toDate ? shortDate(t.toDate()) + ' ' + fmtMin(t.toDate().getHours() * 60 + t.toDate().getMinutes()) : '-';
+  $('appr-rows').innerHTML = pend.length ? pend.map(g => `<tr>
+      <td><b>${esc(g.name)}</b><div class="muted small">${esc(g.username || '')}</div></td>
+      <td>${esc(longDate(fromIso(g.date)))}</td><td><b>${fmtMin(g.start)}–${fmtMin(g.end)}</b></td><td>${esc(g.court)}</td>
+      <td>${esc(g.note || '-')}</td><td>${when(g.createdAt)}</td>
+      <td class="act"><button class="btn primary mini" data-appr="${esc(g.key)}">Approve</button><button class="btn ghost mini" data-rej="${esc(g.key)}">Reject</button></td></tr>`).join('')
+    : '<tr><td colspan="7" class="muted">No bookings waiting for approval.</td></tr>';
 }
 
 function renderHome() {
   if (!me) return;
   const today = isoDate(dayDate(0)), starts = slotStarts(), cl = closedReason(today);
   const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-  const label = o => o.kind === 'booking' ? o.b.name : (o.r.label || 'Recurring booking');
+  const label = o => o.kind === 'booking' ? o.b.name + (isPendingB(o.b) ? ' (pending)' : '') : (o.r.label || 'Recurring booking');
 
   // ── status tiap lapangan sekarang ──
   $('now-grid').innerHTML = COURTS.map((c, ci) => {
@@ -273,20 +334,13 @@ function renderHome() {
   }).join('');
 
   // ── booking saya (dikelompokkan per grup) ──
-  const groups = new Map();
-  S.bookings.forEach(b => {
-    if (b.uid !== me.uid || isPastSlot(b.date, b.start)) return;
-    const k = b.group || b.id;
-    const g = groups.get(k) || { date: b.date, court: b.court, start: b.start, end: b.end, ids: [] };
-    g.start = Math.min(g.start, b.start); g.end = Math.max(g.end, b.end); g.ids.push(b.id);
-    groups.set(k, g);
-  });
-  const mine = [...groups.values()].sort((a, b) => (a.date + pad(a.start)).localeCompare(b.date + pad(b.start)));
+  const mine = groupBookings(b => b.uid === me.uid && !isPastSlot(b.date, b.start));
   const when = g => (g.date === today ? 'Today' : shortDate(fromIso(g.date))) + ' · ' + fmtMin(g.start) + '–' + fmtMin(g.end);
-  const row = g => `<li><span><b>${esc(when(g))}</b> · ${esc(g.court)}</span><button class="btn ghost mini" type="button" data-cancel-group="${esc(g.ids.join(','))}">Cancel</button></li>`;
+  const tag = g => g.pending ? ' <span class="tag pend">Awaiting approval</span>' : ' <span class="tag ok">Approved</span>';
+  const row = g => `<li><span><b>${esc(when(g))}</b> · ${esc(g.court)}${tag(g)}</span><button class="btn ghost mini" type="button" data-cancel-group="${esc(g.ids.join(','))}">Cancel</button></li>`;
   if (mine.length) {
     const n = mine[0];
-    $('next-booking').innerHTML = `<div class="next-box"><span class="small">Next booking</span><b>${esc(when(n))}</b><span>${esc(n.court)}</span></div>`;
+    $('next-booking').innerHTML = `<div class="next-box${n.pending ? ' pend' : ''}"><span class="small">Next booking${n.pending ? ' · awaiting admin approval' : ''}</span><b>${esc(when(n))}</b><span>${esc(n.court)}</span></div>`;
     $('my-bookings').innerHTML = mine.map(row).join('');
   } else {
     $('next-booking').innerHTML = '';
@@ -351,9 +405,11 @@ function renderBooking() {
     if (cl) return `<div class="slot past"><span class="s">${esc(cl)}</span></div>`;
     const o = occupant(iso, ci, s), past = isPastSlot(iso, s);
     if (o && o.kind === 'booking') {
-      const mine = o.b.uid === me.uid;
+      const mine = o.b.uid === me.uid, pend = isPendingB(o.b);
       const can = (mine && !past) || isPengurus();
-      return `<div class="slot ${mine ? 'mine' : 'booked'}${can && !mine ? ' clickable' : ''}" ${can ? `data-booking="${esc(o.b.id)}" role="button" tabindex="0"` : ''}><span class="s">${esc(mine ? 'My booking' : o.b.name)}</span></div>`;
+      const cls = pend ? 'pending' : mine ? 'mine' : 'booked';
+      const txt = pend ? (mine ? 'Awaiting approval' : o.b.name + ' · pending') : (mine ? 'My booking' : o.b.name);
+      return `<div class="slot ${cls}${can ? ' clickable' : ''}" ${can ? `data-booking="${esc(o.b.id)}" role="button" tabindex="0"` : ''}><span class="s">${esc(txt)}</span></div>`;
     }
     if (o) return `<div class="slot booked"><span class="s">${esc(o.r.label || 'Recurring booking')}</span></div>`;
     if (past) return `<div class="slot past"><span class="s">Past</span></div>`;
@@ -445,9 +501,12 @@ async function doBook(ev) {
         date: iso, court: COURTS[courtIdx], courtIdx, start: s + i * STEP, end: s + (i + 1) * STEP,
         uid: me.uid, username: me.username, name: me.name || me.username, note: $('bk-note').value.trim(),
         group: ids[0], createdAt: F.serverTimestamp(),
+        // booking member menunggu persetujuan admin; booking admin langsung disetujui
+        status: isPengurus() ? 'approved' : 'pending',
       }));
     });
-    $('dlg-book').close(); toast('Booking saved.');
+    $('dlg-book').close();
+    toast(isPengurus() ? 'Booking saved.' : 'Request sent — waiting for admin approval.');
   } catch (e) {
     setMsg('bk-msg', e.message === 'BENTROK' ? 'This slot was just booked by someone else. Please pick another slot.' : authError(e), 'err');
   } finally { busy(form, false); }
@@ -460,8 +519,12 @@ function openDetail(id) {
   const all = detailIds.map(i => S.bookings.get(i));
   const st = Math.min(...all.map(x => x.start)), en = Math.max(...all.map(x => x.end));
   $('dt-body').innerHTML = [['Name', b.name], ['Username', b.username], ['Date', longDate(fromIso(b.date))], ['Time', fmtMin(st) + ' – ' + fmtMin(en)],
-    ['Court', b.court], ['Note', b.note || '-']].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
-  $('dt-cancel').hidden = !(b.uid === me.uid || isPengurus());
+    ['Court', b.court], ['Status', isPendingB(b) ? 'Awaiting approval' : 'Approved'], ['Note', b.note || '-']].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+  const own = b.uid === me.uid, adminPend = isPengurus() && isPendingB(b);
+  $('dt-approve').hidden = !adminPend;
+  $('dt-reject').hidden = !adminPend;
+  // pemilik membatalkan sendiri; admin membatalkan booking orang lain yang sudah disetujui
+  $('dt-cancel').hidden = !(own || (isPengurus() && !isPendingB(b)));
   setMsg('dt-msg', '');
   $('dlg-detail').showModal();
 }
@@ -474,9 +537,12 @@ async function cancelIds(ids) {
 
 async function doCancelDetail(ev) {
   ev.preventDefault();
-  if (!confirm('Cancel this booking?')) return;
+  const g = groupOf(detailIds[0]); if (!g) return;
   busy(ev.target, true);
-  try { await cancelIds(detailIds); $('dlg-detail').close(); toast('Booking cancelled.'); }
+  try {
+    if (g.uid !== me.uid && isPengurus()) { if (await rejectGroup(g, 'cancelled')) $('dlg-detail').close(); }
+    else { if (!confirm('Cancel this booking?')) return; await cancelIds(detailIds); $('dlg-detail').close(); toast('Booking cancelled.'); }
+  }
   catch (e) { setMsg('dt-msg', authError(e), 'err'); }
   finally { busy(ev.target, false); }
 }
@@ -539,6 +605,7 @@ function goPage(p) {
   $$('[data-page-view]').forEach(s => { s.hidden = s.dataset.pageView !== p; });
   $$('#mainnav [data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === p));
   if (p === 'members') renderMembers();
+  if (p === 'approvals') safeRender('Approvals', renderApprovals);
   window.scrollTo({ top: 0 });
 }
 
@@ -563,6 +630,20 @@ function wireStatic() {
   });
   $('form-book').addEventListener('submit', doBook);
   $('form-detail').addEventListener('submit', doCancelDetail);
+  // persetujuan booking (admin)
+  const act = async (fn) => { try { await fn(); } catch (x) { alert(authError(x)); } };
+  $('dt-approve').addEventListener('click', () => act(async () => { const g = groupOf(detailIds[0]); if (g) { await approveGroup(g); $('dlg-detail').close(); } }));
+  $('dt-reject').addEventListener('click', () => act(async () => { const g = groupOf(detailIds[0]); if (g && await rejectGroup(g, 'rejected')) $('dlg-detail').close(); }));
+  $('appr-rows').addEventListener('click', e => {
+    const a = e.target.closest('[data-appr]'), r = e.target.closest('[data-rej]');
+    const key = (a || r) && (a || r).dataset[a ? 'appr' : 'rej']; if (!key) return;
+    const g = groupBookings(b => (b.group || b.id) === key)[0]; if (!g) return;
+    act(() => a ? approveGroup(g) : rejectGroup(g, 'rejected'));
+  });
+  $('appr-card').addEventListener('click', () => goPage('approvals'));
+  $('notices').addEventListener('click', e => {
+    const b = e.target.closest('[data-dismiss]'); if (b) act(() => F.deleteDoc(F.doc(db, 'notices', b.dataset.dismiss)));
+  });
   $$('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 
   $('free-today').addEventListener('click', e => {

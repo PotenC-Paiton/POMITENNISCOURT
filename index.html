@@ -6,8 +6,8 @@
 <title>POTENC Tennis</title>
 <meta name="description" content="Member dashboard and tennis court booking">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23c8e64a'/%3E%3Cpath d='M10 20c14 4 14 20 0 24M54 20c-14 4-14 20 0 24' stroke='%23fff' stroke-width='4' fill='none'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=20261118f">
-<script src="config.js?v=20261118f"></script>
+<link rel="stylesheet" href="style.css?v=20261118g">
+<script src="config.js?v=20261118g"></script>
 </head>
 <body>
 
@@ -76,6 +76,7 @@
       <nav class="mainnav" id="mainnav">
         <button type="button" data-page="home" class="active">Dashboard</button>
         <button type="button" data-page="booking">Booking</button>
+        <button type="button" data-page="approvals" class="only-pengurus">Approvals <span class="badge" id="appr-badge" hidden></span></button>
         <button type="button" data-page="members" class="only-pengurus">Members <span class="badge" id="pending-badge" hidden></span></button>
         <button type="button" data-page="court" class="only-pengurus">Manage Courts</button>
         <button type="button" data-page="profile">Profile</button>
@@ -89,6 +90,16 @@
     <!-- DASHBOARD -->
     <section data-page-view="home">
       <h2 class="greet" id="greet"></h2>
+
+      <!-- notifikasi untuk saya (booking disetujui / ditolak) -->
+      <div id="notices" class="notices" hidden></div>
+
+      <!-- pengurus: booking menunggu persetujuan -->
+      <button type="button" class="alert-card only-pengurus" id="appr-card" hidden>
+        <span class="alert-n" id="appr-n">0</span>
+        <span><b>bookings awaiting approval</b><br><span class="muted small">Click to review</span></span>
+        <span class="alert-go">›</span>
+      </button>
 
       <!-- pengurus: antrean verifikasi -->
       <button type="button" class="alert-card only-pengurus" id="pending-card" hidden>
@@ -146,11 +157,25 @@
         <div class="legend">
           <span><i class="dot free"></i>Available</span>
           <span><i class="dot mine"></i>My booking</span>
+          <span><i class="dot pending"></i>Awaiting approval</span>
           <span><i class="dot booked"></i>Booked</span>
           <span><i class="dot past"></i>Past / closed</span>
         </div>
         <div class="slots" id="slots"></div>
         <p class="muted small">Click an <b>Available</b> slot to book. Click your own booking to cancel it<span class="only-pengurus"> — admins can cancel anyone's booking</span>.</p>
+      </div>
+    </section>
+
+    <!-- PERSETUJUAN BOOKING (pengurus) -->
+    <section data-page-view="approvals" hidden>
+      <div class="card">
+        <div class="card-head"><h3>Bookings awaiting approval</h3><span class="muted small">Approve to confirm the slot. Reject to free it again — the member is notified either way.</span></div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Member</th><th>Date</th><th>Time</th><th>Court</th><th>Note</th><th>Requested</th><th></th></tr></thead>
+            <tbody id="appr-rows"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -253,6 +278,8 @@
     <dl class="kv" id="dt-body"></dl>
     <div class="dlg-actions">
       <button type="button" class="btn ghost" data-close>Close</button>
+      <button type="button" class="btn ghost" id="dt-reject" hidden>Reject</button>
+      <button type="button" class="btn primary" id="dt-approve" hidden>Approve</button>
       <button type="submit" class="btn danger" id="dt-cancel">Cancel booking</button>
     </div>
     <p class="form-msg" id="dt-msg"></p>
@@ -261,6 +288,6 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="app.js?v=20261118f"></script>
+<script type="module" src="app.js?v=20261118g"></script>
 </body>
 </html>
