@@ -6,8 +6,8 @@
 <title>POTENC Tennis</title>
 <meta name="description" content="Member dashboard and tennis court booking">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23c8e64a'/%3E%3Cpath d='M10 20c14 4 14 20 0 24M54 20c-14 4-14 20 0 24' stroke='%23fff' stroke-width='4' fill='none'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=20261118e">
-<script src="config.js?v=20261118e"></script>
+<link rel="stylesheet" href="style.css?v=20261118f">
+<script src="config.js?v=20261118f"></script>
 </head>
 <body>
 
@@ -43,12 +43,12 @@
     </form>
 
     <form id="form-register" class="form" hidden>
-      <label>Username<input id="rg-user" autocomplete="username" required placeholder="lowercase letters, numbers, dot, _ or -">
-        <small class="muted">3–20 characters. Used to sign in and cannot be changed.</small></label>
+      <label>Username<input id="rg-user" autocomplete="username" required placeholder="e.g. budi01" autocapitalize="none" spellcheck="false">
+        <small class="muted">Letters and numbers only, 3–20 characters, no spaces. Used to sign in and cannot be changed.</small></label>
       <label>Full name<input id="rg-name" autocomplete="name" required></label>
       <label>Unit / Department<input id="rg-unit" list="unit-list"><datalist id="unit-list"></datalist></label>
       <label>Phone number<input id="rg-phone" type="tel" autocomplete="tel" placeholder="optional"></label>
-      <label>Password<input id="rg-pass" type="password" autocomplete="new-password" required minlength="6"></label>
+      <label>Password <small class="muted">(min. 6 characters, letters and/or numbers)</small><input id="rg-pass" type="password" autocomplete="new-password" required minlength="6"></label>
       <label>Confirm password<input id="rg-pass2" type="password" autocomplete="new-password" required minlength="6"></label>
       <button class="btn primary" type="submit">Register</button>
       <p class="form-msg" id="rg-msg"></p>
@@ -261,6 +261,6 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="app.js?v=20261118e"></script>
+<script type="module" src="app.js?v=20261118f"></script>
 </body>
 </html>

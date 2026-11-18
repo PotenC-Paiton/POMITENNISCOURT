@@ -1,5 +1,5 @@
 // POTENC Tennis — dashboard anggota & booking lapangan (Firebase Auth + Firestore)
-import { firebaseConfig } from './firebase-config.js?v=20261118e';
+import { firebaseConfig } from './firebase-config.js?v=20261118f';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const C = window.COURT_CONFIG || {};
@@ -26,7 +26,8 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&a
 const slotStarts = () => { const o = []; for (let m = OPEN; m + STEP <= CLOSE; m += STEP) o.push(m); return o; };
 const slotId = (date, courtIdx, start) => `${date}_${courtIdx}_${pad(Math.floor(start / 60))}${pad(start % 60)}`;
 const emailOf = u => `${u}@${AUTH_DOMAIN}`;
-const USER_RE = /^[a-z0-9._-]{3,20}$/;
+const USER_RE = /^[a-z0-9._-]{3,20}$/;   // login: tetap menerima username lama (mis. potenc.admin)
+const NEW_USER_RE = /^[a-z0-9]{3,20}$/;   // daftar baru: cukup huruf dan angka
 
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -148,9 +149,10 @@ async function doRegister(ev) {
   const u = $('rg-user').value.trim().toLowerCase(), name = $('rg-name').value.trim();
   const unit = $('rg-unit').value.trim(), phone = $('rg-phone').value.trim();
   const p1 = $('rg-pass').value, p2 = $('rg-pass2').value;
-  if (!USER_RE.test(u)) { setMsg('rg-msg', 'Username must be 3–20 characters: lowercase letters, numbers, dot, _ or -.', 'err'); return; }
-  if (!name) { setMsg('rg-msg', 'Name is required.', 'err'); return; }
-  if (p1.length < 6) { setMsg('rg-msg', 'Password must be at least 6 characters.', 'err'); return; }
+  if (/\s/.test(u)) { setMsg('rg-msg', 'Username cannot contain spaces. Use letters and numbers only.', 'err'); return; }
+  if (!NEW_USER_RE.test(u)) { setMsg('rg-msg', 'Username: letters and numbers only, 3–20 characters (e.g. budi01).', 'err'); return; }
+  if (!name) { setMsg('rg-msg', 'Full name is required.', 'err'); return; }
+  if (p1.length < 6) { setMsg('rg-msg', 'Password: at least 6 characters (letters and/or numbers).', 'err'); return; }
   if (p1 !== p2) { setMsg('rg-msg', 'Passwords do not match.', 'err'); return; }
   busy(form, true); setMsg('rg-msg', 'Registering…');
   let cred = null;
