@@ -22,7 +22,7 @@ window.COURT_CONFIG = {
   daysAhead: 14,
 
   // Daftar lapangan
-  courts: ['Lapangan 1'],
+  courts: ['Lapangan 1', 'Lapangan 2'],
 
   // Pilihan unit/departemen saat daftar (kosongkan [] untuk isian bebas)
   units: [],
