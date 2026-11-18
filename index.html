@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis Court Booking</title>
+<meta name="description" content="Jadwal dan booking lapangan tenis">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23c8e64a'/%3E%3Cpath d='M10 20c14 4 14 20 0 24M54 20c-14 4-14 20 0 24' stroke='%23fff' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="ball" aria-hidden="true"></div>
+    <div>
+      <h1 id="site-name">Tennis Court</h1>
+      <p id="site-tagline" class="tagline"></p>
+    </div>
+  </div>
+  <nav class="nav">
+    <a href="#jadwal">Jadwal</a>
+    <a href="#info">Info</a>
+    <a href="#aturan">Tata Tertib</a>
+  </nav>
+</header>
+
+<main>
+  <section id="jadwal" class="card">
+    <div class="card-head">
+      <h2>Jadwal Lapangan</h2>
+      <div class="controls">
+        <select id="court-select" aria-label="Pilih lapangan"></select>
+        <div class="day-nav">
+          <button id="prev-day" type="button" aria-label="Hari sebelumnya">‹</button>
+          <span id="day-label"></span>
+          <button id="next-day" type="button" aria-label="Hari berikutnya">›</button>
+        </div>
+      </div>
+    </div>
+    <div class="day-strip" id="day-strip"></div>
+    <div class="legend">
+      <span><i class="dot free"></i>Tersedia</span>
+      <span><i class="dot booked"></i>Terisi</span>
+      <span><i class="dot past"></i>Sudah lewat / tutup</span>
+    </div>
+    <div id="data-note" class="note" hidden></div>
+    <div class="slots" id="slots"></div>
+    <p class="hint">Pilih slot yang <b>Tersedia</b> untuk mengirim permintaan booking ke admin.</p>
+  </section>
+
+  <section id="info" class="card">
+    <h2>Info Lapangan</h2>
+    <dl class="info-grid" id="info-grid"></dl>
+  </section>
+
+  <section id="aturan" class="card">
+    <h2>Tata Tertib</h2>
+    <ol class="rules" id="rules"></ol>
+  </section>
+</main>
+
+<footer class="footer">
+  <span id="footer-name"></span> · Jadwal diperbarui oleh admin
+</footer>
+
+<dialog id="book-dialog">
+  <form method="dialog" id="book-form">
+    <h3>Permintaan Booking</h3>
+    <p class="slot-sum" id="slot-sum"></p>
+    <label>Nama pemesan
+      <input type="text" id="f-name" required autocomplete="name" placeholder="Nama lengkap">
+    </label>
+    <label>Unit / Departemen
+      <input type="text" id="f-unit" placeholder="opsional">
+    </label>
+    <label>Durasi
+      <select id="f-dur"></select>
+    </label>
+    <label>Jumlah pemain
+      <select id="f-players"><option>2</option><option>4</option><option>Lainnya</option></select>
+    </label>
+    <label>Catatan
+      <textarea id="f-note" rows="2" placeholder="opsional"></textarea>
+    </label>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="btn-cancel">Batal</button>
+      <button type="submit" class="btn primary" id="btn-send">Kirim via WhatsApp</button>
+    </div>
+    <p class="dlg-note" id="dlg-note"></p>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
