@@ -1,5 +1,5 @@
 // POTENC Tennis — dashboard anggota & booking lapangan (Firebase Auth + Firestore)
-import { firebaseConfig } from './firebase-config.js?v=20261118b';
+import { firebaseConfig } from './firebase-config.js?v=20261118c';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const C = window.COURT_CONFIG || {};
@@ -225,7 +225,19 @@ const MAX_RES = C.maxReservationsPerWeek || 2;
 const MAX_RES_MIN = (C.maxHoursPerReservation || 2) * 60;
 
 // ── render ─────────────────────────────────────────────
-function renderAll() { if (!me || me.status !== 'approved') return; renderHome(); renderBooking(); renderCourt(); }
+// Setiap bagian digambar terpisah: bila satu gagal, bagian lain tetap tampil dan pesan errornya terlihat.
+function safeRender(name, fn) {
+  try { fn(); }
+  catch (e) {
+    console.error('Gagal menampilkan ' + name, e);
+    const box = $('render-error');
+    if (box) { box.hidden = false; box.textContent = `Ada bagian yang gagal ditampilkan (${name}): ${e && e.message}. Coba muat ulang (Ctrl+F5); bila tetap muncul, kirim pesan ini ke admin aplikasi.`; }
+  }
+}
+function renderAll() {
+  if (!me || me.status !== 'approved') return;
+  safeRender('Dashboard', renderHome); safeRender('Booking', renderBooking); safeRender('Kelola Lapangan', renderCourt);
+}
 
 function renderHome() {
   if (!me) return;

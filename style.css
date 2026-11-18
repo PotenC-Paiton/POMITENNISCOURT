@@ -193,3 +193,4 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--free-bd);background:var(--free);color:var(--free-tx);border-radius:9px;padding:6px 10px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 .chip:hover{filter:brightness(.96)}
+.note{background:#fff7e0;border:1px solid #f0d58a;color:#7a5a00;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px}
