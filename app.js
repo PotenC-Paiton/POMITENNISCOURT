@@ -1,5 +1,5 @@
 // POTENC Tennis — dashboard anggota & booking lapangan (Firebase Auth + Firestore)
-import { firebaseConfig } from './firebase-config.js?v=20261118d';
+import { firebaseConfig } from './firebase-config.js?v=20261118e';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const C = window.COURT_CONFIG || {};
@@ -334,7 +334,8 @@ function renderHome() {
 }
 
 function renderBooking() {
-  $('court-select').hidden = COURTS.length < 2;
+  // semua lapangan tampil berdampingan (kolom per lapangan), jadi dropdown tidak dipakai
+  $('court-select').hidden = true;
   if (!$('court-select').options.length) $('court-select').innerHTML = COURTS.map((c, i) => `<option value="${i}">${esc(c)}</option>`).join('');
   $('day-strip').innerHTML = Array.from({ length: DAYS_AHEAD }, (_, i) => {
     const d = dayDate(i), cl = closedReason(isoDate(d));
@@ -344,19 +345,23 @@ function renderBooking() {
   $('next-day').disabled = dayIdx === DAYS_AHEAD - 1;
   const d = dayDate(dayIdx), iso = isoDate(d), cl = closedReason(iso);
   $('day-label').textContent = longDate(d);
-  $('slots').innerHTML = slotStarts().map(s => {
-    const label = fmtMin(s) + ' – ' + fmtMin(s + STEP);
-    if (cl) return `<div class="slot past"><span class="t">${label}</span><span class="s">${esc(cl)}</span></div>`;
-    const o = occupant(iso, courtIdx, s), past = isPastSlot(iso, s);
+  const cell = (ci, s) => {
+    if (cl) return `<div class="slot past"><span class="s">${esc(cl)}</span></div>`;
+    const o = occupant(iso, ci, s), past = isPastSlot(iso, s);
     if (o && o.kind === 'booking') {
       const mine = o.b.uid === me.uid;
       const can = (mine && !past) || isPengurus();
-      return `<div class="slot ${mine ? 'mine' : 'booked'}${can && !mine ? ' clickable' : ''}" ${can ? `data-booking="${esc(o.b.id)}" role="button" tabindex="0"` : ''}><span class="t">${label}</span><span class="s">${esc(mine ? 'My booking' : o.b.name)}</span></div>`;
+      return `<div class="slot ${mine ? 'mine' : 'booked'}${can && !mine ? ' clickable' : ''}" ${can ? `data-booking="${esc(o.b.id)}" role="button" tabindex="0"` : ''}><span class="s">${esc(mine ? 'My booking' : o.b.name)}</span></div>`;
     }
-    if (o) return `<div class="slot booked"><span class="t">${label}</span><span class="s">${esc(o.r.label || 'Recurring booking')}</span></div>`;
-    if (past) return `<div class="slot past"><span class="t">${label}</span><span class="s">Past</span></div>`;
-    return `<button type="button" class="slot free" data-s="${s}"><span class="t">${label}</span><span class="s">Available</span></button>`;
-  }).join('');
+    if (o) return `<div class="slot booked"><span class="s">${esc(o.r.label || 'Recurring booking')}</span></div>`;
+    if (past) return `<div class="slot past"><span class="s">Past</span></div>`;
+    return `<button type="button" class="slot free" data-s="${s}" data-c="${ci}" aria-label="Book ${esc(COURTS[ci])} at ${fmtMin(s)}"><span class="s">Available</span></button>`;
+  };
+  const el = $('slots');
+  el.className = 'sched';
+  el.style.gridTemplateColumns = `76px repeat(${COURTS.length}, minmax(0, 1fr))`;
+  el.innerHTML = '<div class="sh-blank"></div>' + COURTS.map(c => `<div class="sh">${esc(c)}</div>`).join('')
+    + slotStarts().map(s => `<div class="tl">${fmtMin(s)}<small>${fmtMin(s + STEP)}</small></div>` + COURTS.map((c, ci) => cell(ci, s)).join('')).join('');
 }
 
 function renderMembers() {
@@ -551,7 +556,7 @@ function wireStatic() {
   $('next-day').addEventListener('click', () => { if (dayIdx < DAYS_AHEAD - 1) { dayIdx++; renderBooking(); } });
   $('day-strip').addEventListener('click', e => { const b = e.target.closest('.day-chip'); if (b) { dayIdx = Number(b.dataset.i); renderBooking(); } });
   $('slots').addEventListener('click', e => {
-    const f = e.target.closest('.slot.free'); if (f) { openBook(Number(f.dataset.s)); return; }
+    const f = e.target.closest('.slot.free'); if (f) { courtIdx = Number(f.dataset.c) || 0; openBook(Number(f.dataset.s)); return; }
     const b = e.target.closest('[data-booking]'); if (b) openDetail(b.dataset.booking);
   });
   $('form-book').addEventListener('submit', doBook);
