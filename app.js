@@ -1,5 +1,5 @@
 // POTENC Tennis — dashboard anggota & booking lapangan (Firebase Auth + Firestore)
-import { firebaseConfig } from './firebase-config.js?v=20261118g';
+import { firebaseConfig } from './firebase-config.js?v=20261118h';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const C = window.COURT_CONFIG || {};
@@ -306,7 +306,7 @@ function renderHome() {
   if (!me) return;
   const today = isoDate(dayDate(0)), starts = slotStarts(), cl = closedReason(today);
   const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-  const label = o => o.kind === 'booking' ? o.b.name + (isPendingB(o.b) ? ' (pending)' : '') : (o.r.label || 'Recurring booking');
+  const label = o => o.kind === 'booking' ? (isPendingB(o.b) ? 'Requested by ' + o.b.name + ' (pending)' : 'Booked by ' + o.b.name) : 'Booked: ' + (o.r.label || 'recurring schedule');
 
   // ── status tiap lapangan sekarang ──
   $('now-grid').innerHTML = COURTS.map((c, ci) => {
@@ -408,10 +408,11 @@ function renderBooking() {
       const mine = o.b.uid === me.uid, pend = isPendingB(o.b);
       const can = (mine && !past) || isPengurus();
       const cls = pend ? 'pending' : mine ? 'mine' : 'booked';
-      const txt = pend ? (mine ? 'Awaiting approval' : o.b.name + ' · pending') : (mine ? 'My booking' : o.b.name);
-      return `<div class="slot ${cls}${can ? ' clickable' : ''}" ${can ? `data-booking="${esc(o.b.id)}" role="button" tabindex="0"` : ''}><span class="s">${esc(txt)}</span></div>`;
+      const who = mine ? 'you' : o.b.name;
+      const txt = pend ? `Requested by ${who} · awaiting approval` : `Booked by ${who}`;
+      return `<div class="slot ${cls}${can ? ' clickable' : ''}" ${can ? `data-booking="${esc(o.b.id)}" role="button" tabindex="0"` : ''} title="${esc(txt)}"><span class="s">${esc(txt)}</span></div>`;
     }
-    if (o) return `<div class="slot booked"><span class="s">${esc(o.r.label || 'Recurring booking')}</span></div>`;
+    if (o) return `<div class="slot booked" title="${esc('Booked: ' + (o.r.label || 'recurring schedule'))}"><span class="s">${esc('Booked: ' + (o.r.label || 'recurring schedule'))}</span></div>`;
     if (past) return `<div class="slot past"><span class="s">Past</span></div>`;
     return `<button type="button" class="slot free" data-s="${s}" data-c="${ci}" aria-label="Book ${esc(COURTS[ci])} at ${fmtMin(s)}"><span class="s">Available</span></button>`;
   };
