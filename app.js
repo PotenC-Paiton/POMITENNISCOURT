@@ -179,7 +179,8 @@ function enterApp() {
   if (started && started === me.role) { renderAll(); return; }
   if (started) stopData();          // peran berubah (mis. diangkat jadi pengurus) → pasang ulang listener
   started = me.role;
-  const from = isoDate(dayDate(0)), to = isoDate(dayDate(DAYS_AHEAD - 1));
+  // mulai dari Senin minggu ini, supaya reservasi yang sudah lewat di minggu ini ikut terhitung kuota
+  const from = weekStart(isoDate(dayDate(0))), to = isoDate(dayDate(DAYS_AHEAD - 1));
   const onErr = e => { console.error(e); toast('Gagal memuat data: ' + authError(e)); };
   unsubs.push(F.onSnapshot(F.query(F.collection(db, 'bookings'), F.where('date', '>=', from), F.where('date', '<=', to)), snap => {
     S.bookings = new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }])); renderAll();
@@ -212,7 +213,16 @@ function isPastSlot(iso, s) {
   if (iso !== isoDate(dayDate(0))) return iso < isoDate(dayDate(0));
   const n = new Date(); return s + STEP <= n.getHours() * 60 + n.getMinutes();
 }
-function myMinutesOn(iso) { let m = 0; S.bookings.forEach(b => { if (b.uid === me.uid && b.date === iso) m += STEP; }); return m; }
+// Minggu = Senin s/d Minggu. Mengembalikan tanggal Senin (ISO) dari minggu tanggal tsb.
+function weekStart(iso) { const d = fromIso(iso); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoDate(d); }
+// Jumlah reservasi (grup booking) milik saya di minggu yang sama dengan tanggal iso
+function myReservationsInWeek(iso) {
+  const ws = weekStart(iso), groups = new Set();
+  S.bookings.forEach(b => { if (b.uid === me.uid && weekStart(b.date) === ws) groups.add(b.group || b.id); });
+  return groups.size;
+}
+const MAX_RES = C.maxReservationsPerWeek || 2;
+const MAX_RES_MIN = (C.maxHoursPerReservation || 2) * 60;
 
 // ── render ─────────────────────────────────────────────
 function renderAll() { if (!me || me.status !== 'approved') return; renderHome(); renderBooking(); renderCourt(); }
@@ -267,6 +277,10 @@ function renderHome() {
   } else {
     $('next-booking').innerHTML = '';
     $('my-bookings').innerHTML = '<li class="empty">Belum ada booking. Pilih slot kosong di samping atau buka menu Booking.</li>';
+  }
+  if (!isPengurus()) {
+    const used = myReservationsInWeek(today);
+    $('next-booking').insertAdjacentHTML('afterbegin', `<p class="small" style="margin:0 0 8px">Kuota minggu ini: <b>${used}/${MAX_RES}</b> reservasi <span class="muted">· maks ${MAX_RES_MIN / 60} jam per reservasi</span></p>`);
   }
 
   // ── slot kosong hari ini (klik = booking) ──
@@ -381,10 +395,14 @@ function fillProfile() {
 let pick = null;
 function openBook(s) {
   const iso = isoDate(dayDate(dayIdx));
-  const limit = isPengurus() ? Infinity : (C.maxHoursPerDay || 2) * 60 - myMinutesOn(iso);
-  if (limit < STEP) { toast(`Batas ${C.maxHoursPerDay || 2} jam per hari sudah tercapai.`); return; }
+  if (!isPengurus() && myReservationsInWeek(iso) >= MAX_RES) {
+    const ws = fromIso(weekStart(iso)), we = new Date(ws); we.setDate(we.getDate() + 6);
+    toast(`Kuota ${MAX_RES}x reservasi untuk minggu ${shortDate(ws)} – ${shortDate(we)} sudah habis.`);
+    return;
+  }
+  const limit = isPengurus() ? Infinity : MAX_RES_MIN;
   let n = 0;
-  while (s + (n + 1) * STEP <= CLOSE && (n + 1) * STEP <= Math.min(limit, 4 * 60) && !occupant(iso, courtIdx, s + n * STEP)) n++;
+  while (s + (n + 1) * STEP <= CLOSE && (n + 1) * STEP <= limit && !occupant(iso, courtIdx, s + n * STEP)) n++;
   pick = { iso, s };
   $('bk-sum').textContent = COURTS[courtIdx] + ' · ' + longDate(fromIso(iso)) + ' · mulai ' + fmtMin(s);
   $('bk-dur').innerHTML = Array.from({ length: Math.max(1, n) }, (_, i) => {

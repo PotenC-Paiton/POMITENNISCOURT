@@ -15,8 +15,11 @@ window.COURT_CONFIG = {
   closeHour: 22,
   slotMinutes: 60,
 
-  // Batas booking per anggota per hari (jam). Pengurus tidak dibatasi.
-  maxHoursPerDay: 2,
+  // Batas booking anggota (pengurus tidak dibatasi):
+  //  - maksimal N reservasi per minggu (minggu = Senin s/d Minggu; reservasi yang dibatalkan tidak dihitung)
+  //  - maksimal N jam per satu reservasi
+  maxReservationsPerWeek: 2,
+  maxHoursPerReservation: 2,
 
   // Berapa hari ke depan yang bisa dibooking
   daysAhead: 14,
@@ -29,7 +32,7 @@ window.COURT_CONFIG = {
 
   rules: [
     'Booking berlaku langsung dan terlihat oleh semua anggota.',
-    'Maksimal 2 jam per anggota per hari.',
+    'Setiap anggota maksimal 2 kali reservasi per minggu (Senin–Minggu), dan maksimal 2 jam per reservasi.',
     'Batalkan booking lewat aplikasi bila tidak jadi bermain, agar slot bisa dipakai anggota lain.',
     'Slot yang tidak dipakai 15 menit setelah mulai dapat diberikan ke pemain lain.',
     'Gunakan sepatu tenis dan jaga kebersihan lapangan.',

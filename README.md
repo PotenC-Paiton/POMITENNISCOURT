@@ -6,7 +6,7 @@ Dashboard anggota dan booking lapangan tenis. Tampilan di-host di **GitHub Pages
 
 - **Daftar & login pakai username** (tanpa email). Akun baru berstatus *Menunggu verifikasi* sampai disetujui pengurus.
 - **Dashboard**: slot terisi/tersedia hari ini, jam terpakai 7 hari ke depan, booking saya, jadwal hari ini, grafik pemakaian.
-- **Booking langsung**: slot terkunci begitu dibooking (tidak bisa bentrok), maksimal 2 jam per anggota per hari (bisa diatur), batal sendiri.
+- **Booking langsung**: slot terkunci begitu dibooking (tidak bisa bentrok); anggota maksimal 2x reservasi per minggu, maks 2 jam per reservasi (bisa diatur); batal sendiri.
 - **Pengurus**: verifikasi / tolak / nonaktifkan anggota, angkat pengurus lain, batalkan booking siapa pun, atur tanggal tutup dan jadwal rutin mingguan.
 - **Profil**: ubah nama, unit, nomor HP, dan ganti password.
 
@@ -43,7 +43,8 @@ Anggota yang masih ingat password bisa menggantinya sendiri di menu **Profil**.
 | Kunci | Isi |
 |---|---|
 | `openHour`, `closeHour`, `slotMinutes` | Jam buka, jam tutup, durasi satu slot. |
-| `maxHoursPerDay` | Batas booking per anggota per hari (pengurus tidak dibatasi). |
+| `maxReservationsPerWeek` | Kuota reservasi anggota per minggu (Senin–Minggu). Default 2. Pengurus tidak dibatasi. |
+| `maxHoursPerReservation` | Durasi maksimal satu reservasi anggota (jam). Default 2. |
 | `daysAhead` | Berapa hari ke depan yang bisa dibooking. |
 | `courts` | Daftar lapangan. Lebih dari satu → muncul pilihan lapangan. |
 | `units` | Pilihan unit/departemen saat daftar (kosong = isian bebas). |
