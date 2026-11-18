@@ -1,5 +1,5 @@
 // POTENC Tennis — dashboard anggota & booking lapangan (Firebase Auth + Firestore)
-import { firebaseConfig } from './firebase-config.js?v=20261118h';
+import { firebaseConfig } from './firebase-config.js?v=20261118i';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const C = window.COURT_CONFIG || {};
@@ -62,8 +62,8 @@ let started = false;
 const isPengurus = () => me && me.status === 'approved' && me.role === 'pengurus';
 
 // ── boot ───────────────────────────────────────────────
-document.title = (C.siteName || 'POTENC Tennis');
-$$('.brand-name').forEach(e => { e.textContent = C.siteName || 'POTENC Tennis'; });
+document.title = (C.siteName || 'PE-POMI Tennis Court');
+$$('.brand-name').forEach(e => { e.textContent = C.siteName || 'PE-POMI Tennis Court'; });
 $$('.brand-tag').forEach(e => { e.textContent = C.tagline || ''; });
 $('unit-list').innerHTML = (C.units || []).map(u => `<option value="${esc(u)}">`).join('');
 $('rules').innerHTML = (C.rules || []).map(r => `<li>${esc(r)}</li>`).join('');

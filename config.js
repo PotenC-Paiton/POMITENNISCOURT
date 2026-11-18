@@ -2,7 +2,7 @@
 //  PENGATURAN KLUB — ubah nilai di file ini saja.
 // ============================================================
 window.COURT_CONFIG = {
-  siteName: 'POTENC Tennis Court',
+  siteName: 'PE-POMI Tennis Court',
   tagline: 'Member dashboard & court booking',
 
   // Login memakai username saja. Di belakang layar username diubah menjadi
