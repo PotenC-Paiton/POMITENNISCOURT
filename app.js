@@ -1,5 +1,5 @@
 // POTENC Tennis — dashboard anggota & booking lapangan (Firebase Auth + Firestore)
-import { firebaseConfig } from './firebase-config.js?v=20261118i';
+import { firebaseConfig } from './firebase-config.js?v=20261118j';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const C = window.COURT_CONFIG || {};

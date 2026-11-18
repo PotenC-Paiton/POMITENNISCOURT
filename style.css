@@ -218,3 +218,13 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .notice{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface);font-size:14px}
 .notice.approved{border-left:5px solid var(--free-bd)}
 .notice.rejected,.notice.cancelled{border-left:5px solid var(--booked-bd)}
+
+/* Controlled by POTEN-C */
+.ctrl-by{display:flex;align-items:center;gap:8px;padding:3px 10px 3px 4px;border-radius:12px;background:rgba(255,255,255,.95);color:#1f4d37;flex:none}
+.ctrl-by img{width:34px;height:auto;display:block}
+.ctrl-by span{display:flex;flex-direction:column;line-height:1.05}
+.ctrl-by small{font-size:10px;color:#5d6b63;text-transform:uppercase;letter-spacing:.4px}
+.ctrl-by b{font-size:14px;letter-spacing:.5px;color:#1f5a2e}
+.ctrl-by.light{margin:18px 0 0 auto;width:max-content;background:transparent;border:1px solid var(--border)}
+.ctrl-by.light small{color:var(--muted)} .ctrl-by.light b{color:var(--court)}
+@media (max-width:640px){.topbar .ctrl-by span{display:none}.topbar .ctrl-by{padding:3px}}
