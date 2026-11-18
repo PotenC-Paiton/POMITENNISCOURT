@@ -1,0 +1,56 @@
+rules_version = '2';
+// Firestore Security Rules — POTENC Tennis Court
+// Tempel seluruh isi file ini di Firebase Console → Firestore Database → Rules → Publish.
+//
+// Prinsip:
+//  - Akun baru selalu dibuat dengan status 'pending' dan role 'member'.
+//  - Hanya akun 'approved' yang bisa membaca jadwal / booking.
+//  - Hanya 'pengurus' yang bisa memverifikasi anggota, menutup lapangan, dan
+//    mengatur jadwal rutin.
+//  - Satu slot = satu dokumen (id unik), jadi dua orang tidak bisa membooking
+//    slot yang sama: dokumen yang sudah ada tidak bisa ditimpa anggota biasa.
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function myDoc() { return /databases/$(db)/documents/users/$(request.auth.uid); }
+    function me() { return get(myDoc()).data; }
+    function approved() { return signedIn() && exists(myDoc()) && me().status == 'approved'; }
+    function pengurus() { return approved() && me().role == 'pengurus'; }
+
+    match /users/{uid} {
+      // Anggota membaca datanya sendiri; pengurus membaca semua.
+      allow read: if signedIn() && (request.auth.uid == uid || pengurus());
+      // Pendaftaran: hanya untuk diri sendiri, wajib pending + member.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.role == 'member'
+        && request.resource.data.username is string;
+      // Anggota hanya boleh mengubah nama, unit, dan nomor HP miliknya.
+      allow update: if pengurus()
+        || (request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'unit', 'phone']));
+      allow delete: if pengurus();
+    }
+
+    match /bookings/{id} {
+      allow read: if approved();
+      allow create: if approved()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.date is string
+        && request.resource.data.start is int;
+      allow update: if pengurus();
+      allow delete: if pengurus() || (approved() && resource.data.uid == request.auth.uid);
+    }
+
+    match /closed/{date} {
+      allow read: if approved();
+      allow write: if pengurus();
+    }
+
+    match /recurring/{id} {
+      allow read: if approved();
+      allow write: if pengurus();
+    }
+  }
+}
