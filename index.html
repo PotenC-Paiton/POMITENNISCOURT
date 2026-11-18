@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>POTENC Tennis</title>
-<meta name="description" content="Dashboard anggota dan booking lapangan tenis">
+<meta name="description" content="Member dashboard and tennis court booking">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23c8e64a'/%3E%3Cpath d='M10 20c14 4 14 20 0 24M54 20c-14 4-14 20 0 24' stroke='%23fff' stroke-width='4' fill='none'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=20261118c">
-<script src="config.js?v=20261118c"></script>
+<link rel="stylesheet" href="style.css?v=20261118d">
+<script src="config.js?v=20261118d"></script>
 </head>
 <body>
 
@@ -15,8 +15,8 @@
 <section id="view-setup" class="center-view" hidden>
   <div class="auth-card">
     <div class="ball big" aria-hidden="true"></div>
-    <h1>Firebase belum diatur</h1>
-    <p class="muted">Isi <code>firebase-config.js</code> dengan konfigurasi project Firebase, lalu muat ulang halaman ini. Langkah lengkap ada di <code>README.md</code>.</p>
+    <h1>Firebase is not configured</h1>
+    <p class="muted">Fill in <code>firebase-config.js</code> with your Firebase project configuration, then reload this page. Full steps are in <code>README.md</code>.</p>
   </div>
 </section>
 
@@ -31,28 +31,28 @@
       </div>
     </div>
     <div class="tabs" role="tablist">
-      <button type="button" class="tab active" data-auth="login">Masuk</button>
-      <button type="button" class="tab" data-auth="register">Daftar</button>
+      <button type="button" class="tab active" data-auth="login">Sign in</button>
+      <button type="button" class="tab" data-auth="register">Register</button>
     </div>
 
     <form id="form-login" class="form">
       <label>Username<input id="li-user" autocomplete="username" required></label>
       <label>Password<input id="li-pass" type="password" autocomplete="current-password" required></label>
-      <button class="btn primary" type="submit">Masuk</button>
+      <button class="btn primary" type="submit">Sign in</button>
       <p class="form-msg" id="li-msg"></p>
     </form>
 
     <form id="form-register" class="form" hidden>
-      <label>Username<input id="rg-user" autocomplete="username" required placeholder="huruf kecil, angka, titik, _ atau -">
-        <small class="muted">3–20 karakter. Dipakai untuk login, tidak bisa diubah.</small></label>
-      <label>Nama lengkap<input id="rg-name" autocomplete="name" required></label>
-      <label>Unit / Departemen<input id="rg-unit" list="unit-list"><datalist id="unit-list"></datalist></label>
-      <label>Nomor HP<input id="rg-phone" type="tel" autocomplete="tel" placeholder="opsional"></label>
+      <label>Username<input id="rg-user" autocomplete="username" required placeholder="lowercase letters, numbers, dot, _ or -">
+        <small class="muted">3–20 characters. Used to sign in and cannot be changed.</small></label>
+      <label>Full name<input id="rg-name" autocomplete="name" required></label>
+      <label>Unit / Department<input id="rg-unit" list="unit-list"><datalist id="unit-list"></datalist></label>
+      <label>Phone number<input id="rg-phone" type="tel" autocomplete="tel" placeholder="optional"></label>
       <label>Password<input id="rg-pass" type="password" autocomplete="new-password" required minlength="6"></label>
-      <label>Ulangi password<input id="rg-pass2" type="password" autocomplete="new-password" required minlength="6"></label>
-      <button class="btn primary" type="submit">Daftar</button>
+      <label>Confirm password<input id="rg-pass2" type="password" autocomplete="new-password" required minlength="6"></label>
+      <button class="btn primary" type="submit">Register</button>
       <p class="form-msg" id="rg-msg"></p>
-      <p class="muted small">Akun baru harus diverifikasi pengurus sebelum bisa dipakai.</p>
+      <p class="muted small">New accounts must be approved by an admin before they can be used.</p>
     </form>
   </div>
 </section>
@@ -61,9 +61,9 @@
 <section id="view-pending" class="center-view" hidden>
   <div class="auth-card">
     <div class="ball big" aria-hidden="true"></div>
-    <h1 id="pending-title">Menunggu verifikasi</h1>
+    <h1 id="pending-title">Awaiting approval</h1>
     <p class="muted" id="pending-text"></p>
-    <button class="btn ghost" type="button" data-action="logout">Keluar</button>
+    <button class="btn ghost" type="button" data-action="logout">Sign out</button>
   </div>
 </section>
 
@@ -76,11 +76,11 @@
       <nav class="mainnav" id="mainnav">
         <button type="button" data-page="home" class="active">Dashboard</button>
         <button type="button" data-page="booking">Booking</button>
-        <button type="button" data-page="members" class="only-pengurus">Anggota <span class="badge" id="pending-badge" hidden></span></button>
-        <button type="button" data-page="court" class="only-pengurus">Kelola Lapangan</button>
-        <button type="button" data-page="profile">Profil</button>
+        <button type="button" data-page="members" class="only-pengurus">Members <span class="badge" id="pending-badge" hidden></span></button>
+        <button type="button" data-page="court" class="only-pengurus">Manage Courts</button>
+        <button type="button" data-page="profile">Profile</button>
       </nav>
-      <button class="btn ghost small-btn" type="button" data-action="logout">Keluar</button>
+      <button class="btn ghost small-btn" type="button" data-action="logout">Sign out</button>
     </div>
   </header>
 
@@ -93,7 +93,7 @@
       <!-- pengurus: antrean verifikasi -->
       <button type="button" class="alert-card only-pengurus" id="pending-card" hidden>
         <span class="alert-n" id="st-pending">0</span>
-        <span><b>pendaftar menunggu verifikasi</b><br><span class="muted small">Klik untuk meninjau</span></span>
+        <span><b>registrations awaiting approval</b><br><span class="muted small">Click to review</span></span>
         <span class="alert-go">›</span>
       </button>
 
@@ -102,28 +102,28 @@
 
       <div class="grid2">
         <div class="card">
-          <h3>Booking saya</h3>
+          <h3>My bookings</h3>
           <div id="next-booking"></div>
           <ul class="list" id="my-bookings"></ul>
         </div>
         <div class="card">
-          <h3>Slot kosong hari ini</h3>
+          <h3>Free slots today</h3>
           <div id="free-today"></div>
-          <p class="muted small" style="margin:10px 0 0">Klik jam untuk langsung booking.</p>
+          <p class="muted small" style="margin:10px 0 0">Click a time to book it right away.</p>
         </div>
       </div>
 
       <div class="card">
-        <h3>Jadwal hari ini</h3>
+        <h3>Today's schedule</h3>
         <ul class="list" id="today-list"></ul>
       </div>
 
       <div class="card only-pengurus">
-        <div class="card-head"><h3>Pemakaian 7 hari ke depan</h3><span class="muted small"><b id="st-week">0</b> jam terpakai · <b id="st-members">0</b> anggota aktif</span></div>
+        <div class="card-head"><h3>Usage, next 7 days</h3><span class="muted small"><b id="st-week">0</b> hours booked · <b id="st-members">0</b> active members</span></div>
         <div class="bars" id="week-bars"></div>
       </div>
       <div class="card">
-        <h3>Tata tertib</h3>
+        <h3>Court rules</h3>
         <ol class="rules" id="rules"></ol>
       </div>
     </section>
@@ -132,25 +132,25 @@
     <section data-page-view="booking" hidden>
       <div class="card">
         <div class="card-head">
-          <h3>Jadwal Lapangan</h3>
+          <h3>Court Schedule</h3>
           <div class="controls">
-            <select id="court-select" aria-label="Pilih lapangan"></select>
+            <select id="court-select" aria-label="Select court"></select>
             <div class="day-nav">
-              <button id="prev-day" type="button" aria-label="Hari sebelumnya">‹</button>
+              <button id="prev-day" type="button" aria-label="Previous day">‹</button>
               <span id="day-label"></span>
-              <button id="next-day" type="button" aria-label="Hari berikutnya">›</button>
+              <button id="next-day" type="button" aria-label="Next day">›</button>
             </div>
           </div>
         </div>
         <div class="day-strip" id="day-strip"></div>
         <div class="legend">
-          <span><i class="dot free"></i>Tersedia</span>
-          <span><i class="dot mine"></i>Booking saya</span>
-          <span><i class="dot booked"></i>Terisi</span>
-          <span><i class="dot past"></i>Lewat / tutup</span>
+          <span><i class="dot free"></i>Available</span>
+          <span><i class="dot mine"></i>My booking</span>
+          <span><i class="dot booked"></i>Booked</span>
+          <span><i class="dot past"></i>Past / closed</span>
         </div>
         <div class="slots" id="slots"></div>
-        <p class="muted small">Klik slot <b>Tersedia</b> untuk booking. Klik booking milik Anda untuk membatalkan<span class="only-pengurus"> — pengurus bisa membatalkan booking siapa pun</span>.</p>
+        <p class="muted small">Click an <b>Available</b> slot to book. Click your own booking to cancel it<span class="only-pengurus"> — admins can cancel anyone's booking</span>.</p>
       </div>
     </section>
 
@@ -158,17 +158,17 @@
     <section data-page-view="members" hidden>
       <div class="card">
         <div class="card-head">
-          <h3>Anggota</h3>
+          <h3>Members</h3>
           <div class="tabs small" id="member-tabs">
-            <button type="button" class="tab active" data-mf="pending">Menunggu <span id="mf-pending"></span></button>
-            <button type="button" class="tab" data-mf="approved">Aktif <span id="mf-approved"></span></button>
-            <button type="button" class="tab" data-mf="rejected">Ditolak / nonaktif <span id="mf-rejected"></span></button>
+            <button type="button" class="tab active" data-mf="pending">Pending <span id="mf-pending"></span></button>
+            <button type="button" class="tab" data-mf="approved">Active <span id="mf-approved"></span></button>
+            <button type="button" class="tab" data-mf="rejected">Rejected / inactive <span id="mf-rejected"></span></button>
           </div>
         </div>
-        <input id="member-search" class="search" placeholder="Cari nama / username / unit">
+        <input id="member-search" class="search" placeholder="Search name / username / unit">
         <div class="table-wrap">
           <table class="tbl">
-            <thead><tr><th>Nama</th><th>Username</th><th>Unit</th><th>HP</th><th>Peran</th><th>Daftar</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Username</th><th>Unit</th><th>Phone</th><th>Role</th><th>Registered</th><th></th></tr></thead>
             <tbody id="member-rows"></tbody>
           </table>
         </div>
@@ -179,23 +179,23 @@
     <section data-page-view="court" hidden>
       <div class="grid2">
         <div class="card">
-          <h3>Tanggal tutup</h3>
+          <h3>Closed dates</h3>
           <form id="form-closed" class="inline-form">
             <input type="date" id="cl-date" required>
-            <input id="cl-reason" placeholder="Alasan (mis. perbaikan)" required>
-            <button class="btn primary" type="submit">Tambah</button>
+            <input id="cl-reason" placeholder="Reason (e.g. maintenance)" required>
+            <button class="btn primary" type="submit">Add</button>
           </form>
           <ul class="list" id="closed-list"></ul>
         </div>
         <div class="card">
-          <h3>Jadwal rutin mingguan</h3>
+          <h3>Weekly recurring schedule</h3>
           <form id="form-recurring" class="inline-form">
             <select id="rc-day" required></select>
             <select id="rc-start" required></select>
             <select id="rc-end" required></select>
             <select id="rc-court"></select>
-            <input id="rc-label" placeholder="Keterangan (mis. latihan rutin)" required>
-            <button class="btn primary" type="submit">Tambah</button>
+            <input id="rc-label" placeholder="Description (e.g. weekly practice)" required>
+            <button class="btn primary" type="submit">Add</button>
           </form>
           <ul class="list" id="recurring-list"></ul>
         </div>
@@ -206,23 +206,23 @@
     <section data-page-view="profile" hidden>
       <div class="grid2">
         <div class="card">
-          <h3>Data diri</h3>
+          <h3>Personal details</h3>
           <form id="form-profile" class="form">
             <label>Username<input id="pf-user" disabled></label>
-            <label>Nama lengkap<input id="pf-name" required></label>
-            <label>Unit / Departemen<input id="pf-unit" list="unit-list"></label>
-            <label>Nomor HP<input id="pf-phone" type="tel"></label>
-            <button class="btn primary" type="submit">Simpan</button>
+            <label>Full name<input id="pf-name" required></label>
+            <label>Unit / Department<input id="pf-unit" list="unit-list"></label>
+            <label>Phone number<input id="pf-phone" type="tel"></label>
+            <button class="btn primary" type="submit">Save</button>
             <p class="form-msg" id="pf-msg"></p>
           </form>
         </div>
         <div class="card">
-          <h3>Ganti password</h3>
+          <h3>Change password</h3>
           <form id="form-password" class="form">
-            <label>Password lama<input id="pw-old" type="password" autocomplete="current-password" required></label>
-            <label>Password baru<input id="pw-new" type="password" autocomplete="new-password" required minlength="6"></label>
-            <label>Ulangi password baru<input id="pw-new2" type="password" autocomplete="new-password" required minlength="6"></label>
-            <button class="btn primary" type="submit">Ganti password</button>
+            <label>Current password<input id="pw-old" type="password" autocomplete="current-password" required></label>
+            <label>New password<input id="pw-new" type="password" autocomplete="new-password" required minlength="6"></label>
+            <label>Confirm new password<input id="pw-new2" type="password" autocomplete="new-password" required minlength="6"></label>
+            <button class="btn primary" type="submit">Change password</button>
             <p class="form-msg" id="pw-msg"></p>
           </form>
         </div>
@@ -234,13 +234,13 @@
 <!-- Dialog booking -->
 <dialog id="dlg-book">
   <form method="dialog" class="form dlg" id="form-book">
-    <h3>Booking lapangan</h3>
+    <h3>Book a court</h3>
     <p class="slot-sum" id="bk-sum"></p>
-    <label>Durasi<select id="bk-dur"></select></label>
-    <label>Catatan<input id="bk-note" placeholder="opsional, mis. lawan main"></label>
+    <label>Duration<select id="bk-dur"></select></label>
+    <label>Note<input id="bk-note" placeholder="optional, e.g. playing partner"></label>
     <div class="dlg-actions">
-      <button type="button" class="btn ghost" data-close>Batal</button>
-      <button type="submit" class="btn primary">Booking</button>
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="submit" class="btn primary">Book</button>
     </div>
     <p class="form-msg" id="bk-msg"></p>
   </form>
@@ -249,11 +249,11 @@
 <!-- Dialog detail / batal booking -->
 <dialog id="dlg-detail">
   <form method="dialog" class="form dlg" id="form-detail">
-    <h3>Detail booking</h3>
+    <h3>Booking details</h3>
     <dl class="kv" id="dt-body"></dl>
     <div class="dlg-actions">
-      <button type="button" class="btn ghost" data-close>Tutup</button>
-      <button type="submit" class="btn danger" id="dt-cancel">Batalkan booking</button>
+      <button type="button" class="btn ghost" data-close>Close</button>
+      <button type="submit" class="btn danger" id="dt-cancel">Cancel booking</button>
     </div>
     <p class="form-msg" id="dt-msg"></p>
   </form>
@@ -261,6 +261,6 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="app.js?v=20261118c"></script>
+<script type="module" src="app.js?v=20261118d"></script>
 </body>
 </html>

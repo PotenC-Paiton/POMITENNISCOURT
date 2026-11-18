@@ -3,7 +3,7 @@
 // ============================================================
 window.COURT_CONFIG = {
   siteName: 'POTENC Tennis Court',
-  tagline: 'Dashboard anggota & booking lapangan',
+  tagline: 'Member dashboard & court booking',
 
   // Login memakai username saja. Di belakang layar username diubah menjadi
   // alamat "username@<authDomain>" untuk Firebase Auth — alamat ini tidak
@@ -25,16 +25,16 @@ window.COURT_CONFIG = {
   daysAhead: 14,
 
   // Daftar lapangan
-  courts: ['Lapangan 1', 'Lapangan 2'],
+  courts: ['Court 1', 'Court 2'],
 
   // Pilihan unit/departemen saat daftar (kosongkan [] untuk isian bebas)
   units: [],
 
   rules: [
-    'Booking berlaku langsung dan terlihat oleh semua anggota.',
-    'Setiap anggota maksimal 2 kali reservasi per minggu (Senin–Minggu), dan maksimal 2 jam per reservasi.',
-    'Batalkan booking lewat aplikasi bila tidak jadi bermain, agar slot bisa dipakai anggota lain.',
-    'Slot yang tidak dipakai 15 menit setelah mulai dapat diberikan ke pemain lain.',
-    'Gunakan sepatu tenis dan jaga kebersihan lapangan.',
+    'Bookings take effect immediately and are visible to all members.',
+    'Each member may make up to 2 reservations per week (Monday–Sunday), with a maximum of 2 hours per reservation.',
+    'If you will not play, cancel your booking in the app so other members can use the slot.',
+    'A slot that is not used within 15 minutes of its start time may be given to other players.',
+    'Wear tennis shoes and keep the court clean.',
   ],
 };

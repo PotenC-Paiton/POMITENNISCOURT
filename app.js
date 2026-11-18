@@ -1,5 +1,5 @@
 // POTENC Tennis — dashboard anggota & booking lapangan (Firebase Auth + Firestore)
-import { firebaseConfig } from './firebase-config.js?v=20261118c';
+import { firebaseConfig } from './firebase-config.js?v=20261118d';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const C = window.COURT_CONFIG || {};
@@ -7,15 +7,15 @@ const STEP = C.slotMinutes || 60;
 const OPEN = (C.openHour ?? 6) * 60;
 const CLOSE = (C.closeHour ?? 22) * 60;
 const DAYS_AHEAD = C.daysAhead || 14;
-const COURTS = C.courts && C.courts.length ? C.courts : ['Lapangan 1'];
+const COURTS = C.courts && C.courts.length ? C.courts : ['Court 1'];
 const AUTH_DOMAIN = C.authDomain || 'potenc.tennis';
-const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const $ = id => document.getElementById(id);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
 const pad = n => String(n).padStart(2, '0');
-const fmtMin = m => pad(Math.floor(m / 60)) + '.' + pad(m % 60);
+const fmtMin = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
 const toMin = hhmm => { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + (m || 0); };
 const isoDate = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const dayDate = i => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; };
@@ -38,14 +38,14 @@ function busy(form, on) { form.querySelectorAll('button[type=submit]').forEach(b
 
 function authError(e) {
   const c = e && e.code || '';
-  if (c === 'auth/invalid-credential' || c === 'auth/wrong-password' || c === 'auth/user-not-found' || c === 'auth/invalid-email') return 'Username atau password salah.';
-  if (c === 'auth/email-already-in-use') return 'Username sudah dipakai, pilih yang lain.';
-  if (c === 'auth/weak-password') return 'Password minimal 6 karakter.';
-  if (c === 'auth/too-many-requests') return 'Terlalu banyak percobaan. Coba lagi beberapa menit lagi.';
-  if (c === 'auth/network-request-failed') return 'Tidak ada koneksi internet.';
-  if (c === 'auth/operation-not-allowed') return 'Login Email/Password belum diaktifkan di Firebase Console.';
-  if (c === 'permission-denied') return 'Akses ditolak oleh aturan keamanan.';
-  return (e && e.message) || 'Terjadi kesalahan.';
+  if (c === 'auth/invalid-credential' || c === 'auth/wrong-password' || c === 'auth/user-not-found' || c === 'auth/invalid-email') return 'Incorrect username or password.';
+  if (c === 'auth/email-already-in-use') return 'That username is already taken. Please choose another.';
+  if (c === 'auth/weak-password') return 'Password must be at least 6 characters.';
+  if (c === 'auth/too-many-requests') return 'Too many attempts. Please try again in a few minutes.';
+  if (c === 'auth/network-request-failed') return 'No internet connection.';
+  if (c === 'auth/operation-not-allowed') return 'Email/Password sign-in is not enabled in the Firebase Console.';
+  if (c === 'permission-denied') return 'Access denied by security rules.';
+  return (e && e.message) || 'Something went wrong.';
 }
 
 // ── state ──────────────────────────────────────────────
@@ -70,7 +70,7 @@ $('rules').innerHTML = (C.rules || []).map(r => `<li>${esc(r)}</li>`).join('');
 if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
   showView('setup');
 } else {
-  boot().catch(e => { console.error(e); showView('setup'); $('view-setup').querySelector('p').textContent = 'Gagal memuat Firebase: ' + e.message; });
+  boot().catch(e => { console.error(e); showView('setup'); $('view-setup').querySelector('p').textContent = 'Failed to load Firebase: ' + e.message; });
 }
 
 async function boot() {
@@ -94,17 +94,17 @@ function onAuth(user) {
   unsubMe = F.onSnapshot(F.doc(db, 'users', user.uid), snap => {
     if (!snap.exists()) {
       me = null;
-      pendingView('Data akun tidak ditemukan',
-        'Akun login ada, tetapi data pendaftarannya tidak ada (mungkin dihapus pengurus atau pendaftaran terputus). Ajukan ulang agar pengurus bisa memverifikasi.', true);
+      pendingView('Account record not found',
+        'Your login exists, but its registration record is missing (it may have been deleted by an admin, or registration was interrupted). Re-apply so an admin can approve you.', true);
       return;
     }
     me = { uid: user.uid, ...snap.data() };
     document.body.classList.toggle('is-pengurus', isPengurus());
     if (me.status === 'approved') { enterApp(); return; }
     stopData();
-    if (me.status === 'rejected') pendingView('Akun tidak aktif', 'Pendaftaran Anda ditolak atau akun dinonaktifkan pengurus. Hubungi pengurus bila ini keliru.');
-    else pendingView('Menunggu verifikasi', `Halo ${me.name || me.username}, pendaftaran Anda sudah diterima dan sedang menunggu verifikasi pengurus. Halaman ini akan terbuka otomatis setelah disetujui.`);
-  }, err => { console.error(err); pendingView('Gagal memuat akun', authError(err)); });
+    if (me.status === 'rejected') pendingView('Account inactive', 'Your registration was rejected or your account was deactivated by an admin. Contact an admin if you think this is a mistake.');
+    else pendingView('Awaiting approval', `Hi ${me.name || me.username}, your registration has been received and is waiting for admin approval. This page will open automatically once you are approved.`);
+  }, err => { console.error(err); pendingView('Failed to load account', authError(err)); });
 }
 
 function pendingView(title, text, reapply) {
@@ -113,7 +113,7 @@ function pendingView(title, text, reapply) {
   let btn = $('btn-reapply');
   if (reapply && !btn) {
     btn = document.createElement('button');
-    btn.id = 'btn-reapply'; btn.type = 'button'; btn.className = 'btn primary'; btn.textContent = 'Ajukan ulang';
+    btn.id = 'btn-reapply'; btn.type = 'button'; btn.className = 'btn primary'; btn.textContent = 'Re-apply';
     btn.style.marginRight = '8px';
     btn.addEventListener('click', reapplyAccount);
     $('view-pending').querySelector('[data-action=logout]').before(btn);
@@ -125,18 +125,18 @@ function pendingView(title, text, reapply) {
 async function reapplyAccount() {
   const u = auth.currentUser; if (!u) return;
   const username = (u.email || '').split('@')[0];
-  const name = prompt('Nama lengkap:', username) || username;
+  const name = prompt('Full name:', username) || username;
   try {
     await F.setDoc(F.doc(db, 'users', u.uid), { username, name, unit: '', phone: '', role: 'member', status: 'pending', createdAt: F.serverTimestamp() });
-    toast('Pendaftaran diajukan ulang.');
+    toast('Registration submitted again.');
   } catch (e) { alert(authError(e)); }
 }
 
 async function doLogin(ev) {
   ev.preventDefault();
   const form = ev.target, u = $('li-user').value.trim().toLowerCase(), p = $('li-pass').value;
-  if (!USER_RE.test(u)) { setMsg('li-msg', 'Username tidak valid.', 'err'); return; }
-  busy(form, true); setMsg('li-msg', 'Memeriksa…');
+  if (!USER_RE.test(u)) { setMsg('li-msg', 'Invalid username.', 'err'); return; }
+  busy(form, true); setMsg('li-msg', 'Signing in…');
   try { await F.signInWithEmailAndPassword(auth, emailOf(u), p); setMsg('li-msg', ''); form.reset(); }
   catch (e) { setMsg('li-msg', authError(e), 'err'); }
   finally { busy(form, false); }
@@ -148,11 +148,11 @@ async function doRegister(ev) {
   const u = $('rg-user').value.trim().toLowerCase(), name = $('rg-name').value.trim();
   const unit = $('rg-unit').value.trim(), phone = $('rg-phone').value.trim();
   const p1 = $('rg-pass').value, p2 = $('rg-pass2').value;
-  if (!USER_RE.test(u)) { setMsg('rg-msg', 'Username 3–20 karakter: huruf kecil, angka, titik, _ atau -.', 'err'); return; }
-  if (!name) { setMsg('rg-msg', 'Nama wajib diisi.', 'err'); return; }
-  if (p1.length < 6) { setMsg('rg-msg', 'Password minimal 6 karakter.', 'err'); return; }
-  if (p1 !== p2) { setMsg('rg-msg', 'Ulangi password tidak sama.', 'err'); return; }
-  busy(form, true); setMsg('rg-msg', 'Mendaftarkan…');
+  if (!USER_RE.test(u)) { setMsg('rg-msg', 'Username must be 3–20 characters: lowercase letters, numbers, dot, _ or -.', 'err'); return; }
+  if (!name) { setMsg('rg-msg', 'Name is required.', 'err'); return; }
+  if (p1.length < 6) { setMsg('rg-msg', 'Password must be at least 6 characters.', 'err'); return; }
+  if (p1 !== p2) { setMsg('rg-msg', 'Passwords do not match.', 'err'); return; }
+  busy(form, true); setMsg('rg-msg', 'Registering…');
   let cred = null;
   try {
     cred = await F.createUserWithEmailAndPassword(auth, emailOf(u), p1);
@@ -173,7 +173,7 @@ function stopData() { unsubs.forEach(u => { try { u(); } catch (e) {} }); unsubs
 function enterApp() {
   showView('app');
   document.body.classList.toggle('is-pengurus', isPengurus());
-  $('greet').textContent = 'Halo, ' + (me.name || me.username) + (isPengurus() ? ' (Pengurus)' : '');
+  $('greet').textContent = 'Hi, ' + (me.name || me.username) + (isPengurus() ? ' (Admin)' : '');
   fillProfile();
   if (!isPengurus() && (page === 'members' || page === 'court')) goPage('home');
   if (started && started === me.role) { renderAll(); return; }
@@ -181,7 +181,7 @@ function enterApp() {
   started = me.role;
   // mulai dari Senin minggu ini, supaya reservasi yang sudah lewat di minggu ini ikut terhitung kuota
   const from = weekStart(isoDate(dayDate(0))), to = isoDate(dayDate(DAYS_AHEAD - 1));
-  const onErr = e => { console.error(e); toast('Gagal memuat data: ' + authError(e)); };
+  const onErr = e => { console.error(e); toast('Failed to load data: ' + authError(e)); };
   unsubs.push(F.onSnapshot(F.query(F.collection(db, 'bookings'), F.where('date', '>=', from), F.where('date', '<=', to)), snap => {
     S.bookings = new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }])); renderAll();
   }, onErr));
@@ -200,7 +200,7 @@ function enterApp() {
 }
 
 // ── jadwal: siapa yang memakai slot ────────────────────
-function closedReason(iso) { const c = S.closed.get(iso); return c ? (c.reason || 'Tutup') : null; }
+function closedReason(iso) { const c = S.closed.get(iso); return c ? (c.reason || 'Closed') : null; }
 function occupant(iso, ci, s) {
   const b = S.bookings.get(slotId(iso, ci, s));
   if (b) return { kind: 'booking', b };
@@ -229,29 +229,29 @@ const MAX_RES_MIN = (C.maxHoursPerReservation || 2) * 60;
 function safeRender(name, fn) {
   try { fn(); }
   catch (e) {
-    console.error('Gagal menampilkan ' + name, e);
+    console.error('Failed to render ' + name, e);
     const box = $('render-error');
-    if (box) { box.hidden = false; box.textContent = `Ada bagian yang gagal ditampilkan (${name}): ${e && e.message}. Coba muat ulang (Ctrl+F5); bila tetap muncul, kirim pesan ini ke admin aplikasi.`; }
+    if (box) { box.hidden = false; box.textContent = `Part of the page failed to load (${name}): ${e && e.message}. Try reloading (Ctrl+F5); if it keeps appearing, send this message to the app admin.`; }
   }
 }
 function renderAll() {
   if (!me || me.status !== 'approved') return;
-  safeRender('Dashboard', renderHome); safeRender('Booking', renderBooking); safeRender('Kelola Lapangan', renderCourt);
+  safeRender('Dashboard', renderHome); safeRender('Booking', renderBooking); safeRender('Manage Courts', renderCourt);
 }
 
 function renderHome() {
   if (!me) return;
   const today = isoDate(dayDate(0)), starts = slotStarts(), cl = closedReason(today);
   const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-  const label = o => o.kind === 'booking' ? o.b.name : (o.r.label || 'Jadwal rutin');
+  const label = o => o.kind === 'booking' ? o.b.name : (o.r.label || 'Recurring booking');
 
   // ── status tiap lapangan sekarang ──
   $('now-grid').innerHTML = COURTS.map((c, ci) => {
-    let cls = 'free', state = 'Kosong', sub = '';
-    if (cl) { cls = 'off'; state = 'Tutup'; sub = cl; }
+    let cls = 'free', state = 'Free', sub = '';
+    if (cl) { cls = 'off'; state = 'Closed'; sub = cl; }
     else if (nowMin < OPEN || nowMin >= CLOSE) {
-      cls = 'off'; state = 'Di luar jam buka';
-      sub = 'Buka ' + fmtMin(OPEN) + ' – ' + fmtMin(CLOSE);
+      cls = 'off'; state = 'Outside opening hours';
+      sub = 'Open ' + fmtMin(OPEN) + ' – ' + fmtMin(CLOSE);
     } else {
       const cur = starts.find(s => s <= nowMin && nowMin < s + STEP);
       const o = occupant(today, ci, cur);
@@ -259,15 +259,15 @@ function renderHome() {
         let end = cur + STEP;   // perpanjang selama slot berikutnya dipakai orang/jadwal yang sama
         while (end < CLOSE) { const n = occupant(today, ci, end); if (!n || label(n) !== label(o)) break; end += STEP; }
         const mine = o.kind === 'booking' && o.b.uid === me.uid;
-        cls = mine ? 'mine' : 'busy'; state = mine ? 'Dipakai Anda' : 'Dipakai';
-        sub = (mine ? '' : label(o) + ' · ') + 's/d ' + fmtMin(end);
+        cls = mine ? 'mine' : 'busy'; state = mine ? 'In use by you' : 'In use';
+        sub = (mine ? '' : label(o) + ' · ') + 'until ' + fmtMin(end);
       } else {
         let end = cur + STEP;
         while (end < CLOSE && !occupant(today, ci, end)) end += STEP;
-        sub = end >= CLOSE ? 'Kosong sampai tutup (' + fmtMin(CLOSE) + ')' : 'Kosong sampai ' + fmtMin(end);
+        sub = end >= CLOSE ? 'Free until closing (' + fmtMin(CLOSE) + ')' : 'Free until ' + fmtMin(end);
       }
     }
-    return `<div class="now ${cls}"><span class="court">${esc(c)} · sekarang</span><span class="state">${esc(state)}</span><span class="sub">${esc(sub)}</span></div>`;
+    return `<div class="now ${cls}"><span class="court">${esc(c)} · now</span><span class="state">${esc(state)}</span><span class="sub">${esc(sub)}</span></div>`;
   }).join('');
 
   // ── booking saya (dikelompokkan per grup) ──
@@ -280,29 +280,29 @@ function renderHome() {
     groups.set(k, g);
   });
   const mine = [...groups.values()].sort((a, b) => (a.date + pad(a.start)).localeCompare(b.date + pad(b.start)));
-  const when = g => (g.date === today ? 'Hari ini' : shortDate(fromIso(g.date))) + ' · ' + fmtMin(g.start) + '–' + fmtMin(g.end);
-  const row = g => `<li><span><b>${esc(when(g))}</b> · ${esc(g.court)}</span><button class="btn ghost mini" type="button" data-cancel-group="${esc(g.ids.join(','))}">Batal</button></li>`;
+  const when = g => (g.date === today ? 'Today' : shortDate(fromIso(g.date))) + ' · ' + fmtMin(g.start) + '–' + fmtMin(g.end);
+  const row = g => `<li><span><b>${esc(when(g))}</b> · ${esc(g.court)}</span><button class="btn ghost mini" type="button" data-cancel-group="${esc(g.ids.join(','))}">Cancel</button></li>`;
   if (mine.length) {
     const n = mine[0];
-    $('next-booking').innerHTML = `<div class="next-box"><span class="small">Booking berikutnya</span><b>${esc(when(n))}</b><span>${esc(n.court)}</span></div>`;
+    $('next-booking').innerHTML = `<div class="next-box"><span class="small">Next booking</span><b>${esc(when(n))}</b><span>${esc(n.court)}</span></div>`;
     $('my-bookings').innerHTML = mine.map(row).join('');
   } else {
     $('next-booking').innerHTML = '';
-    $('my-bookings').innerHTML = '<li class="empty">Belum ada booking. Pilih slot kosong di samping atau buka menu Booking.</li>';
+    $('my-bookings').innerHTML = '<li class="empty">No bookings yet. Pick a free slot or open the Booking page.</li>';
   }
   if (!isPengurus()) {
     const used = myReservationsInWeek(today);
-    $('next-booking').insertAdjacentHTML('afterbegin', `<p class="small" style="margin:0 0 8px">Kuota minggu ini: <b>${used}/${MAX_RES}</b> reservasi <span class="muted">· maks ${MAX_RES_MIN / 60} jam per reservasi</span></p>`);
+    $('next-booking').insertAdjacentHTML('afterbegin', `<p class="small" style="margin:0 0 8px">This week's quota: <b>${used}/${MAX_RES}</b> reservations <span class="muted">· max ${MAX_RES_MIN / 60} hours per reservation</span></p>`);
   }
 
   // ── slot kosong hari ini (klik = booking) ──
-  if (cl) $('free-today').innerHTML = `<p class="muted">Lapangan tutup hari ini: ${esc(cl)}</p>`;
+  if (cl) $('free-today').innerHTML = `<p class="muted">Courts are closed today: ${esc(cl)}</p>`;
   else {
     $('free-today').innerHTML = COURTS.map((c, ci) => {
       const free = starts.filter(s => !isPastSlot(today, s) && !occupant(today, ci, s));
       return `<div class="free-court"><div class="lbl">${esc(c)}</div>${free.length
         ? `<div class="chips">${free.map(s => `<button type="button" class="chip" data-quick="${ci}:${s}">${fmtMin(s)}</button>`).join('')}</div>`
-        : '<span class="muted small">Penuh / sudah lewat</span>'}</div>`;
+        : '<span class="muted small">Fully booked / past</span>'}</div>`;
     }).join('');
   }
 
@@ -310,9 +310,9 @@ function renderHome() {
   const items = [];
   if (!cl) COURTS.forEach((c, ci) => starts.forEach(s => { const o = occupant(today, ci, s); if (o) items.push({ s, c, who: label(o) }); }));
   items.sort((a, b) => a.s - b.s || a.c.localeCompare(b.c));
-  $('today-list').innerHTML = cl ? `<li class="empty">Lapangan tutup hari ini: ${esc(cl)}</li>`
+  $('today-list').innerHTML = cl ? `<li class="empty">Courts are closed today: ${esc(cl)}</li>`
     : items.length ? items.map(x => `<li><span><b>${fmtMin(x.s)}–${fmtMin(x.s + STEP)}</b> · ${esc(x.c)}</span><span class="muted">${esc(x.who)}</span></li>`).join('')
-    : '<li class="empty">Belum ada yang memakai lapangan hari ini.</li>';
+    : '<li class="empty">No one has booked a court today.</li>';
 
   // ── khusus pengurus ──
   if (isPengurus()) {
@@ -329,7 +329,7 @@ function renderHome() {
     }
     $('st-week').textContent = Math.round(weekMin / 60 * 10) / 10;
     const maxH = Math.max(1, ...bars.map(b => b.h));
-    $('week-bars').innerHTML = bars.map(b => `<div class="bar" title="${esc(longDate(b.d))}"><b>${b.closed ? 'tutup' : b.h}</b><i style="height:${Math.round(b.h / maxH * 100)}%"></i><span>${DAYS[b.d.getDay()].slice(0, 3)}</span></div>`).join('');
+    $('week-bars').innerHTML = bars.map(b => `<div class="bar" title="${esc(longDate(b.d))}"><b>${b.closed ? 'closed' : b.h}</b><i style="height:${Math.round(b.h / maxH * 100)}%"></i><span>${DAYS[b.d.getDay()].slice(0, 3)}</span></div>`).join('');
   }
 }
 
@@ -351,11 +351,11 @@ function renderBooking() {
     if (o && o.kind === 'booking') {
       const mine = o.b.uid === me.uid;
       const can = (mine && !past) || isPengurus();
-      return `<div class="slot ${mine ? 'mine' : 'booked'}${can && !mine ? ' clickable' : ''}" ${can ? `data-booking="${esc(o.b.id)}" role="button" tabindex="0"` : ''}><span class="t">${label}</span><span class="s">${esc(mine ? 'Booking saya' : o.b.name)}</span></div>`;
+      return `<div class="slot ${mine ? 'mine' : 'booked'}${can && !mine ? ' clickable' : ''}" ${can ? `data-booking="${esc(o.b.id)}" role="button" tabindex="0"` : ''}><span class="t">${label}</span><span class="s">${esc(mine ? 'My booking' : o.b.name)}</span></div>`;
     }
-    if (o) return `<div class="slot booked"><span class="t">${label}</span><span class="s">${esc(o.r.label || 'Jadwal rutin')}</span></div>`;
-    if (past) return `<div class="slot past"><span class="t">${label}</span><span class="s">Sudah lewat</span></div>`;
-    return `<button type="button" class="slot free" data-s="${s}"><span class="t">${label}</span><span class="s">Tersedia</span></button>`;
+    if (o) return `<div class="slot booked"><span class="t">${label}</span><span class="s">${esc(o.r.label || 'Recurring booking')}</span></div>`;
+    if (past) return `<div class="slot past"><span class="t">${label}</span><span class="s">Past</span></div>`;
+    return `<button type="button" class="slot free" data-s="${s}"><span class="t">${label}</span><span class="s">Available</span></button>`;
   }).join('');
 }
 
@@ -373,15 +373,15 @@ function renderMembers() {
   $('member-rows').innerHTML = rows.length ? rows.map(u => {
     const self = u.uid === me.uid;
     let act = '';
-    if (u.status === 'pending') act = `<button class="btn primary mini" data-mact="approve" data-uid="${u.uid}">Setujui</button><button class="btn ghost mini" data-mact="reject" data-uid="${u.uid}">Tolak</button>`;
+    if (u.status === 'pending') act = `<button class="btn primary mini" data-mact="approve" data-uid="${u.uid}">Approve</button><button class="btn ghost mini" data-mact="reject" data-uid="${u.uid}">Reject</button>`;
     else if (u.status === 'approved' && !self) act = (u.role === 'pengurus'
-      ? `<button class="btn ghost mini" data-mact="member" data-uid="${u.uid}">Jadikan anggota</button>`
-      : `<button class="btn ghost mini" data-mact="pengurus" data-uid="${u.uid}">Jadikan pengurus</button>`)
-      + `<button class="btn ghost mini" data-mact="reject" data-uid="${u.uid}">Nonaktifkan</button>`;
-    else if (u.status === 'rejected') act = `<button class="btn primary mini" data-mact="approve" data-uid="${u.uid}">Aktifkan</button><button class="btn danger mini" data-mact="delete" data-uid="${u.uid}">Hapus</button>`;
-    return `<tr><td><b>${esc(u.name)}</b>${self ? ' <span class="muted small">(Anda)</span>' : ''}</td><td>${esc(u.username)}</td><td>${esc(u.unit || '-')}</td><td>${esc(u.phone || '-')}</td>
-      <td><span class="role ${u.role === 'pengurus' ? 'pengurus' : ''}">${u.role === 'pengurus' ? 'Pengurus' : 'Anggota'}</span></td><td>${when(u.createdAt)}</td><td class="act">${act}</td></tr>`;
-  }).join('') : `<tr><td colspan="7" class="muted">Tidak ada data.</td></tr>`;
+      ? `<button class="btn ghost mini" data-mact="member" data-uid="${u.uid}">Make member</button>`
+      : `<button class="btn ghost mini" data-mact="pengurus" data-uid="${u.uid}">Make admin</button>`)
+      + `<button class="btn ghost mini" data-mact="reject" data-uid="${u.uid}">Deactivate</button>`;
+    else if (u.status === 'rejected') act = `<button class="btn primary mini" data-mact="approve" data-uid="${u.uid}">Activate</button><button class="btn danger mini" data-mact="delete" data-uid="${u.uid}">Delete</button>`;
+    return `<tr><td><b>${esc(u.name)}</b>${self ? ' <span class="muted small">(you)</span>' : ''}</td><td>${esc(u.username)}</td><td>${esc(u.unit || '-')}</td><td>${esc(u.phone || '-')}</td>
+      <td><span class="role ${u.role === 'pengurus' ? 'pengurus' : ''}">${u.role === 'pengurus' ? 'Admin' : 'Member'}</span></td><td>${when(u.createdAt)}</td><td class="act">${act}</td></tr>`;
+  }).join('') : `<tr><td colspan="7" class="muted">No data.</td></tr>`;
 }
 
 function renderCourt() {
@@ -389,12 +389,12 @@ function renderCourt() {
   const today = isoDate(dayDate(0));
   const closed = [...S.closed.entries()].filter(([d]) => d >= today).sort(([a], [b]) => a.localeCompare(b));
   $('closed-list').innerHTML = closed.length ? closed.map(([d, c]) =>
-    `<li><span><b>${esc(longDate(fromIso(d)))}</b> · ${esc(c.reason || '')}</span><button class="btn ghost mini" data-del-closed="${esc(d)}">Hapus</button></li>`).join('')
-    : '<li class="empty">Tidak ada tanggal tutup.</li>';
+    `<li><span><b>${esc(longDate(fromIso(d)))}</b> · ${esc(c.reason || '')}</span><button class="btn ghost mini" data-del-closed="${esc(d)}">Delete</button></li>`).join('')
+    : '<li class="empty">No closed dates.</li>';
   const rec = [...S.recurring].sort((a, b) => (a.day - b.day) || String(a.start).localeCompare(String(b.start)));
   $('recurring-list').innerHTML = rec.length ? rec.map(r =>
-    `<li><span><b>${DAYS[r.day]}</b> ${esc(r.start)}–${esc(r.end)}${COURTS.length > 1 ? ' · ' + esc(r.court || COURTS[0]) : ''} · ${esc(r.label)}</span><button class="btn ghost mini" data-del-rec="${esc(r.id)}">Hapus</button></li>`).join('')
-    : '<li class="empty">Belum ada jadwal rutin.</li>';
+    `<li><span><b>${DAYS[r.day]}</b> ${esc(r.start)}–${esc(r.end)}${COURTS.length > 1 ? ' · ' + esc(r.court || COURTS[0]) : ''} · ${esc(r.label)}</span><button class="btn ghost mini" data-del-rec="${esc(r.id)}">Delete</button></li>`).join('')
+    : '<li class="empty">No recurring schedule yet.</li>';
 }
 
 function fillProfile() {
@@ -409,16 +409,16 @@ function openBook(s) {
   const iso = isoDate(dayDate(dayIdx));
   if (!isPengurus() && myReservationsInWeek(iso) >= MAX_RES) {
     const ws = fromIso(weekStart(iso)), we = new Date(ws); we.setDate(we.getDate() + 6);
-    toast(`Kuota ${MAX_RES}x reservasi untuk minggu ${shortDate(ws)} – ${shortDate(we)} sudah habis.`);
+    toast(`You have used all ${MAX_RES} reservations for the week of ${shortDate(ws)} – ${shortDate(we)}.`);
     return;
   }
   const limit = isPengurus() ? Infinity : MAX_RES_MIN;
   let n = 0;
   while (s + (n + 1) * STEP <= CLOSE && (n + 1) * STEP <= limit && !occupant(iso, courtIdx, s + n * STEP)) n++;
   pick = { iso, s };
-  $('bk-sum').textContent = COURTS[courtIdx] + ' · ' + longDate(fromIso(iso)) + ' · mulai ' + fmtMin(s);
+  $('bk-sum').textContent = COURTS[courtIdx] + ' · ' + longDate(fromIso(iso)) + ' · starting ' + fmtMin(s);
   $('bk-dur').innerHTML = Array.from({ length: Math.max(1, n) }, (_, i) => {
-    const m = (i + 1) * STEP; return `<option value="${m}">${m % 60 ? m + ' menit' : m / 60 + ' jam'} (s/d ${fmtMin(s + m)})</option>`;
+    const m = (i + 1) * STEP; return `<option value="${m}">${m % 60 ? m + ' min' : m / 60 + (m === 60 ? ' hour' : ' hours')} (until ${fmtMin(s + m)})</option>`;
   }).join('');
   $('bk-note').value = ''; setMsg('bk-msg', '');
   $('dlg-book').showModal();
@@ -428,7 +428,7 @@ async function doBook(ev) {
   ev.preventDefault();
   const form = ev.target, mins = Number($('bk-dur').value), { iso, s } = pick;
   const ids = []; for (let m = 0; m < mins; m += STEP) ids.push(slotId(iso, courtIdx, s + m));
-  busy(form, true); setMsg('bk-msg', 'Menyimpan…');
+  busy(form, true); setMsg('bk-msg', 'Saving…');
   try {
     await F.runTransaction(db, async tx => {
       const refs = ids.map(id => F.doc(db, 'bookings', id));
@@ -440,9 +440,9 @@ async function doBook(ev) {
         group: ids[0], createdAt: F.serverTimestamp(),
       }));
     });
-    $('dlg-book').close(); toast('Booking tersimpan.');
+    $('dlg-book').close(); toast('Booking saved.');
   } catch (e) {
-    setMsg('bk-msg', e.message === 'BENTROK' ? 'Slot baru saja dibooking orang lain. Pilih slot lain.' : authError(e), 'err');
+    setMsg('bk-msg', e.message === 'BENTROK' ? 'This slot was just booked by someone else. Please pick another slot.' : authError(e), 'err');
   } finally { busy(form, false); }
 }
 
@@ -452,8 +452,8 @@ function openDetail(id) {
   detailIds = [...S.bookings.values()].filter(x => (x.group || x.id) === (b.group || b.id)).map(x => x.id);
   const all = detailIds.map(i => S.bookings.get(i));
   const st = Math.min(...all.map(x => x.start)), en = Math.max(...all.map(x => x.end));
-  $('dt-body').innerHTML = [['Nama', b.name], ['Username', b.username], ['Tanggal', longDate(fromIso(b.date))], ['Jam', fmtMin(st) + ' – ' + fmtMin(en)],
-    ['Lapangan', b.court], ['Catatan', b.note || '-']].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+  $('dt-body').innerHTML = [['Name', b.name], ['Username', b.username], ['Date', longDate(fromIso(b.date))], ['Time', fmtMin(st) + ' – ' + fmtMin(en)],
+    ['Court', b.court], ['Note', b.note || '-']].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   $('dt-cancel').hidden = !(b.uid === me.uid || isPengurus());
   setMsg('dt-msg', '');
   $('dlg-detail').showModal();
@@ -467,9 +467,9 @@ async function cancelIds(ids) {
 
 async function doCancelDetail(ev) {
   ev.preventDefault();
-  if (!confirm('Batalkan booking ini?')) return;
+  if (!confirm('Cancel this booking?')) return;
   busy(ev.target, true);
-  try { await cancelIds(detailIds); $('dlg-detail').close(); toast('Booking dibatalkan.'); }
+  try { await cancelIds(detailIds); $('dlg-detail').close(); toast('Booking cancelled.'); }
   catch (e) { setMsg('dt-msg', authError(e), 'err'); }
   finally { busy(ev.target, false); }
 }
@@ -480,11 +480,11 @@ async function memberAction(act, uid) {
   const ref = F.doc(db, 'users', uid);
   try {
     if (act === 'approve') await F.updateDoc(ref, { status: 'approved', approvedBy: me.username, approvedAt: F.serverTimestamp() });
-    else if (act === 'reject') { if (!confirm(`${u.status === 'pending' ? 'Tolak pendaftaran' : 'Nonaktifkan akun'} ${u.name}?`)) return; await F.updateDoc(ref, { status: 'rejected', rejectedBy: me.username, rejectedAt: F.serverTimestamp() }); }
-    else if (act === 'pengurus') { if (!confirm(`Jadikan ${u.name} pengurus? Pengurus bisa memverifikasi anggota dan mengatur lapangan.`)) return; await F.updateDoc(ref, { role: 'pengurus' }); }
-    else if (act === 'member') { if (!confirm(`Turunkan ${u.name} menjadi anggota biasa?`)) return; await F.updateDoc(ref, { role: 'member' }); }
-    else if (act === 'delete') { if (!confirm(`Hapus data ${u.name}? Orang ini bisa mengajukan ulang dengan username yang sama.`)) return; await F.deleteDoc(ref); }
-    toast('Tersimpan.');
+    else if (act === 'reject') { if (!confirm(`${u.status === 'pending' ? 'Reject the registration of' : 'Deactivate the account of'} ${u.name}?`)) return; await F.updateDoc(ref, { status: 'rejected', rejectedBy: me.username, rejectedAt: F.serverTimestamp() }); }
+    else if (act === 'pengurus') { if (!confirm(`Make ${u.name} an admin? Admins can approve members and manage the courts.`)) return; await F.updateDoc(ref, { role: 'pengurus' }); }
+    else if (act === 'member') { if (!confirm(`Change ${u.name} back to a regular member?`)) return; await F.updateDoc(ref, { role: 'member' }); }
+    else if (act === 'delete') { if (!confirm(`Delete the record of ${u.name}? This person can re-apply with the same username.`)) return; await F.deleteDoc(ref); }
+    toast('Saved.');
   } catch (e) { alert(authError(e)); }
 }
 
@@ -492,14 +492,14 @@ async function addClosed(ev) {
   ev.preventDefault();
   const d = $('cl-date').value, r = $('cl-reason').value.trim();
   if (!d || !r) return;
-  try { await F.setDoc(F.doc(db, 'closed', d), { reason: r, by: me.username }); ev.target.reset(); toast('Tanggal tutup ditambahkan.'); }
+  try { await F.setDoc(F.doc(db, 'closed', d), { reason: r, by: me.username }); ev.target.reset(); toast('Closed date added.'); }
   catch (e) { alert(authError(e)); }
 }
 async function addRecurring(ev) {
   ev.preventDefault();
   const day = Number($('rc-day').value), start = $('rc-start').value, end = $('rc-end').value, label = $('rc-label').value.trim();
-  if (toMin(end) <= toMin(start)) { alert('Jam selesai harus setelah jam mulai.'); return; }
-  try { await F.addDoc(F.collection(db, 'recurring'), { day, start, end, court: COURTS[Number($('rc-court').value) || 0], label, by: me.username }); $('rc-label').value = ''; toast('Jadwal rutin ditambahkan.'); }
+  if (toMin(end) <= toMin(start)) { alert('End time must be after start time.'); return; }
+  try { await F.addDoc(F.collection(db, 'recurring'), { day, start, end, court: COURTS[Number($('rc-court').value) || 0], label, by: me.username }); $('rc-label').value = ''; toast('Recurring schedule added.'); }
   catch (e) { alert(authError(e)); }
 }
 
@@ -507,22 +507,22 @@ async function addRecurring(ev) {
 async function saveProfile(ev) {
   ev.preventDefault();
   busy(ev.target, true);
-  try { await F.updateDoc(F.doc(db, 'users', me.uid), { name: $('pf-name').value.trim(), unit: $('pf-unit').value.trim(), phone: $('pf-phone').value.trim() }); setMsg('pf-msg', 'Tersimpan.', 'ok'); }
+  try { await F.updateDoc(F.doc(db, 'users', me.uid), { name: $('pf-name').value.trim(), unit: $('pf-unit').value.trim(), phone: $('pf-phone').value.trim() }); setMsg('pf-msg', 'Saved.', 'ok'); }
   catch (e) { setMsg('pf-msg', authError(e), 'err'); }
   finally { busy(ev.target, false); }
 }
 async function changePassword(ev) {
   ev.preventDefault();
   const o = $('pw-old').value, n1 = $('pw-new').value, n2 = $('pw-new2').value;
-  if (n1.length < 6) { setMsg('pw-msg', 'Password baru minimal 6 karakter.', 'err'); return; }
-  if (n1 !== n2) { setMsg('pw-msg', 'Ulangi password baru tidak sama.', 'err'); return; }
+  if (n1.length < 6) { setMsg('pw-msg', 'New password must be at least 6 characters.', 'err'); return; }
+  if (n1 !== n2) { setMsg('pw-msg', 'New passwords do not match.', 'err'); return; }
   busy(ev.target, true);
   try {
     const u = auth.currentUser;
     await F.reauthenticateWithCredential(u, F.EmailAuthProvider.credential(u.email, o));
     await F.updatePassword(u, n1);
-    ev.target.reset(); setMsg('pw-msg', 'Password diganti.', 'ok');
-  } catch (e) { setMsg('pw-msg', e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' ? 'Password lama salah.' : authError(e), 'err'); }
+    ev.target.reset(); setMsg('pw-msg', 'Password changed.', 'ok');
+  } catch (e) { setMsg('pw-msg', e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' ? 'Current password is incorrect.' : authError(e), 'err'); }
   finally { busy(ev.target, false); }
 }
 
@@ -568,8 +568,8 @@ function wireStatic() {
   });
   $('my-bookings').addEventListener('click', async e => {
     const b = e.target.closest('[data-cancel-group]'); if (!b) return;
-    if (!confirm('Batalkan booking ini?')) return;
-    try { await cancelIds(b.dataset.cancelGroup.split(',')); toast('Booking dibatalkan.'); } catch (x) { alert(authError(x)); }
+    if (!confirm('Cancel this booking?')) return;
+    try { await cancelIds(b.dataset.cancelGroup.split(',')); toast('Booking cancelled.'); } catch (x) { alert(authError(x)); }
   });
 
   $('member-tabs').addEventListener('click', e => {
@@ -588,11 +588,11 @@ function wireStatic() {
   $('form-closed').addEventListener('submit', addClosed);
   $('form-recurring').addEventListener('submit', addRecurring);
   $('closed-list').addEventListener('click', async e => {
-    const b = e.target.closest('[data-del-closed]'); if (!b || !confirm('Hapus tanggal tutup ini?')) return;
+    const b = e.target.closest('[data-del-closed]'); if (!b || !confirm('Delete this closed date?')) return;
     try { await F.deleteDoc(F.doc(db, 'closed', b.dataset.delClosed)); } catch (x) { alert(authError(x)); }
   });
   $('recurring-list').addEventListener('click', async e => {
-    const b = e.target.closest('[data-del-rec]'); if (!b || !confirm('Hapus jadwal rutin ini?')) return;
+    const b = e.target.closest('[data-del-rec]'); if (!b || !confirm('Delete this recurring schedule?')) return;
     try { await F.deleteDoc(F.doc(db, 'recurring', b.dataset.delRec)); } catch (x) { alert(authError(x)); }
   });
 
